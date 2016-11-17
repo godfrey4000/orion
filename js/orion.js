@@ -26,14 +26,6 @@ const THREE_POINTS = "Points";
 // function.
 //var clock = new THREE.Clock();
 
-// For some undetermined reason, only the last scene renders when it's
-// Firefox, Linux and WebGL.  This only happens with the renderOnce function
-// when it is called right after adding the stars to the scene.  Works fine
-// stepping through in debug mode.  To squash (not solve) this problem, the
-// scenes are cycled and rendered this many times:
-//const INIT_CYCLE_SCENES = 10;
-//var SCENE_CYCLES = 0;
-
 // Objects for identifying the star under the mouse pointer and displaying
 // the attribute.  The units of the threshold are world units, which are
 // independent of scale.
@@ -63,11 +55,13 @@ for (var i = 0; i < starMaps.length; i++) {
     }
 };
 
-
 // Make the star maps interactive and start the animate loop.  Doing it here
 // should call the loop only once (I think).
 // scenes.doWithAll(renderOnce);
 scenes.makeInteractive(onMouseMove, onMouseOver, onMouseOut);
+jQuery('document').ready( function() {
+    scenes.doWithAll(renderOnce);
+});
 animate();
 
 
@@ -79,7 +73,7 @@ animate();
 function draw(mapData)
 {
     // The message line handler for the current scene.
-    var msgHandler = scenes.currentScene().msgHandler;
+    var msgHandler = scenes.currentScene(mapData.canvasID).msgHandler;
     
     // Initialize the camera, renderer, the black space box and the
     // coordinate grids.
@@ -131,7 +125,7 @@ function draw(mapData)
                 msgHandler.setError(errMsg);
             } else {
                 consumeData(msgHandler, mapData, parsedData);
-           }
+            }
         });
     };
 };
@@ -149,8 +143,6 @@ function consumeData(msg, mapData, csv) {
         var starData = toGal(csv);
         msg.setNumberStars(starData.length);
         addStars(starData, mapData);
-        renderOnce(scene);
-        console.info("Rendered scene for " + mapData.canvasID);
         msg.reset();
     }
     catch (err) {
@@ -165,8 +157,8 @@ function consumeData(msg, mapData, csv) {
 function init(sceneP) 
 {
     // The scene
-    var scene = scenes.currentScene().scene;
-    var msgHandler = scenes.currentScene().msgHandler;
+    var scene = scenes.currentScene(sceneP.canvasID).scene;
+    var msgHandler = scenes.currentScene(sceneP.canvasID).msgHandler;
 
     /* The camera
      * Tried an orthographic camera, but the sense of depth was lost, so
@@ -214,8 +206,8 @@ function init(sceneP)
     grid.joinScene(scene);
 
     // Save the scene.
-    scenes.currentScene().camera = camera;
-    scenes.currentScene().renderer = renderer;
+    scenes.currentScene(sceneP.canvasID).camera = camera;
+    scenes.currentScene(sceneP.canvasID).renderer = renderer;
     
     // Update the message line below the star map.
     msgHandler.init(rendererWrapper.engine);
@@ -250,7 +242,7 @@ function onMouseMove(event) {
     mouse.y = pc.y;   
     
     // Reset the message line.
-    scenes.currentScene().msgHandler.reset();
+    scene.msgHandler.reset();
 };
 
 
@@ -324,13 +316,19 @@ function render()
         for (var k = 0; k < intersects.length; k++) {
             var obj = intersects[k].object;
             if (THREE_POINTS === obj.type) {
+                
+                // Check that we have custom attributes.  The red and green
+                // rings are point systems, but they don't have custom
+                // attributes.
+                if (undefined !== obj.geometry.custAttributes) {
 
-                // Dig the attribute out of the object.  This should probably be
-                // handled better.
-                var index = intersects[k].index;
-                var attr = obj.geometry.custAttributes[index];
-                if (attr !== undefined && attr.length > 0) {
-                    msgHandler.setAttribute(attr);
+                    // Dig the attribute out of the object.  This could
+                    // probably be handled better.
+                    var index = intersects[k].index;
+                    var attr = obj.geometry.custAttributes[index];
+                    if (attr !== undefined && attr.length > 0) {
+                        msgHandler.setAttribute(attr);
+                    }
                 }
             }
         }
@@ -346,4 +344,5 @@ function renderOnce(currentScene) {
     var renderer = currentScene.renderer;
     
     renderer.render(scene, camera);
+    console.info("Rendered scene " + currentScene.mapParameters.canvasID);
 }

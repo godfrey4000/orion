@@ -35,6 +35,35 @@ const MSG_DATA_ATTRIBUTE = 3;
 // SceneManager constants
 const NO_ACTIVE_SCENE = -1;
 
+// This was a very hard problem.  When a page had more than one one star map,
+// the renderOnce() function would not render any of them.  The reason turned
+// out to be this: the star disk image was not yet downloaded from the server
+// when render was called.  The render() function would render the scene, but
+// the stars were invisible, because the disk image was missing.
+//
+// Attempting to solve the problem with document.onLoad = ... techniques didn't
+// solve the problem.  Apparently, the browser would believe the document was
+// completely loaded, even though the THREE.js library was still loading
+// textures.
+//
+// Finally, the onLoad() property of the THREE.js TexterLoader did nt work
+// either.  Documentation says that the onLoad function would be called when
+// the image was loaded.  What happened in practice is that adding an onLoad
+// parameter to the constructor just resulted in a typedef exception because
+// the offset was undefined deep in the texture code in the THREE.js.
+//
+// The solution below seems to be the only pattern that works.
+var loaderManager = new THREE.LoadingManager(
+        onTextureLoad, onTextureProgress, onTextureFail
+);
+function onTextureLoad() {
+    scenes.doWithAll(renderOnce);
+};
+function onTextureProgress(arg1, arg2, arg3) {};
+function onTextureFail() {
+    console.error("Failed to load a texture.");
+};
+
 
 // This utility function determines if the point is inside the rectangle.
 // It's required when dtermining which star is under the mouse pointer.
@@ -142,12 +171,12 @@ SceneManager.prototype.newScene = function(mapParameters) {
   *
   * This function executes the callback function with every scene.
   */
-//SceneManager.prototype.doWithAll = function(callbackfn) {
-//
-//    for (var ptr = 0; ptr < this.scenes.length; ptr++) {
-//        callbackfn(this.scenes[ptr]);
-//    }
-//};
+SceneManager.prototype.doWithAll = function(callbackfn) {
+
+    for (var ptr = 0; ptr < this.scenes.length; ptr++) {
+        callbackfn(this.scenes[ptr]);
+    }
+};
 
 SceneManager.prototype.cycle = function() {
     
@@ -173,7 +202,11 @@ SceneManager.prototype.setCurrentScene = function(canvasID) {
 SceneManager.prototype.currentScene = function(canvasID) {
 
     if (undefined === canvasID) {
-        return this.scenes[this.sp];
+        if (NO_ACTIVE_SCENE === this.sp) {
+            return;
+        } else {
+            return this.scenes[this.sp];
+        }
     }
     var ptr = 0;
     while (this.scenes[ptr].mapParameters.canvasID !== canvasID ) {
@@ -357,9 +390,9 @@ SceneManager.prototype.renderStars = function(mapP) {
  */
 var MaterialManager = function() {
 
-    var mapStar = new THREE.TextureLoader().load(STAR_IMG);
-    var mapRing = new THREE.TextureLoader().load(RING_IMG);
-
+    var mapStar = new THREE.TextureLoader(loaderManager).load(STAR_IMG);
+    var mapRing = new THREE.TextureLoader(loaderManager).load(RING_IMG);
+    
     /**
      * These materials are for point systems, which use the WEBGL renderer.
      * They are all identical, except the size.  And they all have
@@ -368,7 +401,7 @@ var MaterialManager = function() {
      */
     // Dim stars.
     this.materialDim = new THREE.PointsMaterial({
-      size: 3.5,
+      size: 3.25,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapStar,
       blending: THREE.AdditiveBlending,
@@ -378,7 +411,7 @@ var MaterialManager = function() {
     
     // Medium-bright stars.
     this.materialMedium = new THREE.PointsMaterial({
-      size: 5,
+      size: 6,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapStar,
       blending: THREE.AdditiveBlending,
@@ -402,26 +435,26 @@ var MaterialManager = function() {
      */
     // A ring for marking stars.
     this.materialRingMark = new THREE.PointsMaterial({
-      size: 12,
+      size: 9,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0xff0000,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
-      opacity: 0.8
+      opacity: 1.0
     });
 
     // A ring for marking the sun, and any stars with a planet known to
     // harbor life.  The opacity for this ring is lower than for the marking
     // ring.  That's because the life ring is green, which is very bright.
     this.materialRingLife = new THREE.PointsMaterial({
-      size: 12,
+      size: 9,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0x00ff00,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
-      opacity: 0.4
+      opacity: 1.0
     });
 
     /**
@@ -603,9 +636,9 @@ CoordinateGrid.prototype.joinScene = function(scene) {
   */
 var StarClass = function(magnitude, marked = false, life = false) {
 
-    if (magnitude < 1.4) {
+    if (magnitude < -1.69) {
         this.class = BRIGHT_STAR;
-    } else if (magnitude < 8) {
+    } else if (magnitude < 3.02) {
         this.class = MEDIUM_STAR;
     } else {
         this.class = DIM_STAR;
@@ -843,9 +876,9 @@ MapMessageLine.prototype.update = function() {
             break;
         case MSG_NORMAL:
             html = "<table class='starMapMsg' width='100%'><tr>"
-                    + "<td width='60px'>" + this.renderer + "</td>"
-                    + "<td width='40%'>" + this.scale + "</td>"
-                    + "<td width='60%'>" + this.starInfo + "</td>"
+                    + "<td style='width: 60px;'>" + this.renderer + "</td>"
+                    + "<td style='width: 40%;'>" + this.scale + "</td>"
+                    + "<td style='width: 60%;'>" + this.starInfo + "</td>"
                     + "</tr></table>";
             break;
         case MSG_ERROR:

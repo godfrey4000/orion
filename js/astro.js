@@ -41,7 +41,7 @@ var toGal = function(eq) {
         
         // Compute the absolute magnitude from the parallax and the apparent
         // magnitude.
-        Amag = 1.0*d.mag + 5*Math.log10(plx/100);
+        Amag = 1.0*mag + 5*Math.log10(plx/100);
 
         // Convert to cartesian equitorial coordinates.
         n = {
