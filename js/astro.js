@@ -16,7 +16,7 @@ var dotp = function(u, v) {
     return w;
 };
 
-var toGal = function(eq) {
+var toGal = function(eq, dnorm) {
     var galData = [];
     eq.forEach( function(d,i) {
         
@@ -37,7 +37,7 @@ var toGal = function(eq) {
         var tagged, attribute;
         
         // Compute the distance (in light years) from the parallax.
-        dist = 3262/plx;
+        dist = dnorm*3262/plx;
         
         // Compute the absolute magnitude from the parallax and the apparent
         // magnitude.

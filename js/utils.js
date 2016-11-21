@@ -4,6 +4,9 @@
 // Math constants
 const PI2 = Math.PI * 2;
 
+// 3D Glasses by Rigo Peter from the Noun Project
+// cardboard by mikicon from the Noun Project
+
 // Material properties
 const SIZE_ATTENUATION = false;
 const TRANSPARENT = true;
@@ -18,6 +21,8 @@ const LIFE_RING = 4;
 // Images
 const STAR_IMG = '/wp-content/plugins/orion/images/disc.png';
 const RING_IMG = '/wp-content/plugins/orion/images/ring.png';
+const CARDBOARD_IMG = '/wp-content/plugins/orion/images/cardboard2.svg';
+const GLASSES3D_IMG = '/wp-content/plugins/orion/images/glasses2.svg';
 
 // Render engines
 const CANVAS = 0;
@@ -150,6 +155,8 @@ SceneManager.prototype.newScene = function(mapParameters) {
     var scene = new THREE.Scene();
     var camera;
     var renderer;
+    var stereoEffect;
+    var anaglyphEffect;
     var stars = [];
     var mapParameters = mapParameters;
     
@@ -160,6 +167,9 @@ SceneManager.prototype.newScene = function(mapParameters) {
       scene: scene,
       camera: camera,
       renderer: renderer,
+      effect: 'none',
+      stereoEffect: stereoEffect,
+      anaglyphEffect: anaglyphEffect,
       stars: stars,
       mapParameters: mapParameters,
       msgHandler: msgHandler
@@ -219,8 +229,10 @@ SceneManager.prototype.makeInteractive = function(mousemove, mouseover, mouseout
     
     for (ptr = 0; ptr < this.scenes.length; ptr++) {
 
-        var canvasID = this.scenes[ptr].mapParameters.canvasID;
+        var scene = this.scenes[ptr];
+        var canvasID = scene.mapParameters.canvasID;
         var elem = document.getElementById(canvasID);
+//        var vrElem = document.getElementById("vr_" + canvasID);
         
         // Add a mouse movement listener so give the renderer the coordinates
         // of the mouse. Used to determine the star under the mouse pointer.
@@ -235,6 +247,14 @@ SceneManager.prototype.makeInteractive = function(mousemove, mouseover, mouseout
         elem.addEventListener("mouseout", function() {
             onMouseOut(this);
         });
+        
+//        vrElem.addEventListener("click", function() {
+//            this.mozRequestFullScreen();
+//            scene.camera.aspect = window.innerWidth/window.innerHeight;
+//            scene.camera.updateProjectionMatrix();
+//            scene.renderer.setSize(window.innerWidth, window.innerHeight);
+//            renderOnce(scene);
+//        });
     }
 };
 
@@ -347,7 +367,7 @@ SceneManager.prototype.renderStars = function(mapP) {
         var material;
         var star;
         var starClass;
-        var scale = this.scenes[ptr].mapParameters.scale;
+        var scale = 0.008256*this.scenes[ptr].mapParameters.scale;
         var cscale = Math.pow(scale, 0.8)/Math.sqrt(1000);
 
         for (j = 0; j < stars.length; j++) {
@@ -598,12 +618,12 @@ var CoordinateGrid = function(scale) {
         // The line material definitions are inside the four loop because the line
         // colors get less opaque as they get farther from the galactic plane.
         var xaxisMaterial = new THREE.LineBasicMaterial({
-            color: 0xffff00,
+            color: 0xffff99,
             transparent: true,
             opacity: 0.3 - Math.abs(d/10)
         });
         var yaxisMaterial = new THREE.LineBasicMaterial({
-            color: 0x00ffff,
+            color: 0x99ffff,
             transparent: true,
             opacity: 0.3 - Math.abs(d/10)
         });
@@ -691,6 +711,56 @@ Star.prototype.color = function() {
     return color;
 };
 
+function launchVR(buttonType, currentScene) {
+    if (WEBGL !== rendererWrapper.engine) {
+        var msg = "Attempt to set effect to sterio ignored.";
+        msg = msg + " WebGL renderer is not in use.";
+        console.warn(msg);
+        return;
+    }
+    
+    // The fullscreen API is implemented a little differently in the browser
+    // engines.
+    var i = document.getElementById(currentScene.mapParameters.canvasID);
+    if (i.requestFullscreen) {
+            i.requestFullscreen();
+    } else if (i.webkitRequestFullscreen) {
+            i.webkitRequestFullscreen();
+    } else if (i.mozRequestFullScreen) {
+            i.mozRequestFullScreen();
+    } else if (i.msRequestFullscreen) {
+            i.msRequestFullscreen();
+    }
+
+//    var w = screen.width/2;
+//    var h = screen.height;
+//    currentScene.camera.aspect = w/h;
+//    currentScene.camera.updateProjectionMatrix();
+//    currentScene.stereoEffect.setSize(2*w, h);
+//    currentScene.effect = 'stereo';
+//    renderOnce(currentScene);   
+}
+function setAnaglyph(buttonType, currentScene) {
+    if (WEBGL !== rendererWrapper.engine) {
+        var msg = "Attempt to set effect to anaglyph ignored.";
+        msg = msg + " WebGL renderer is not in use.";
+        console.warn(msg);
+        return;
+    }
+    currentScene.effect = 'anaglyph';
+    renderOnce(currentScene);
+}
+function unsetAnaglyph(buttonType, currentScene) {
+    if (WEBGL !== rendererWrapper.engine) {
+        var msg = "Attempt to reset effect from anaglyph ignored.";
+        msg = msg + " WebGL renderer is not in use.";
+        console.warn(msg);
+        return;
+    }
+    currentScene.effect = 'none';
+    renderOnce(currentScene);
+}
+
 /**
  * MapMesasgeLine
  * 
@@ -710,6 +780,10 @@ var MapMessageLine = function(mapParameters) {
     this.waitingMsg = "";
     this.stars = "";
     
+    // The VR and 3D (anaglyph) buttons.
+    this.buttonVR = new Button("vr", "icon-cardboard", this.canvasID, launchVR, launchVR);
+    this.button3D = new Button("3d", "icon-glasses", this.canvasID, setAnaglyph, unsetAnaglyph);
+    
     this.renderer = "---";
     this.scale = "---";
     this.starInfo = "---";
@@ -721,6 +795,17 @@ var MapMessageLine = function(mapParameters) {
     this.mediumMinWidth = 255;
     this.largeMinWidth = 375;
 };
+
+MapMessageLine.prototype.getButtonByType = function(type) {
+    switch(type) {
+        case "vr":
+            return this.buttonVR;
+            break;
+        case "3d":
+            return this.button3D;
+            break;
+    }
+}
 
 MapMessageLine.prototype.init = function (engine) {
     
@@ -849,6 +934,8 @@ MapMessageLine.prototype.update = function() {
     
     var html;
     var id = "msg_" + this.canvasID;
+//    var id2 = "vr_" + this.canvasID;
+//    var id3 = "3d_" + this.canvasID;
     var msgline = document.getElementById(id);
     
     // The right field in the message line can be the number of stars,
@@ -876,7 +963,11 @@ MapMessageLine.prototype.update = function() {
             break;
         case MSG_NORMAL:
             html = "<table class='starMapMsg' width='100%'><tr>"
-                    + "<td style='width: 60px;'>" + this.renderer + "</td>"
+                    + "<td style='width: 60px;'>"
+//                    + "<svg class='svgicon' id='" + id2 + "' viewBox='0 0 100 100' width='2em'><use xlink:href='#icon-cardboard'></use></svg>"
+//                    + "<svg class='svgicon' id='" + id3 + "' viewBox='0 0 100 100' width='2em'><use xlink:href='#icon-glasses'></use></svg></td>"
+                    + this.buttonVR.html
+                    + this.button3D.html + "</td>"
                     + "<td style='width: 40%;'>" + this.scale + "</td>"
                     + "<td style='width: 60%;'>" + this.starInfo + "</td>"
                     + "</tr></table>";
@@ -923,3 +1014,91 @@ MapMessageLine.prototype.normal = function() {
     this.update();
 };
 
+
+// I expect there's a better way for an element to call a method of its
+// corresponding object.
+function buttonAction(type, canvasId) {
+    var currentScene = scenes.currentScene(canvasId);
+    var button = currentScene.msgHandler.getButtonByType(type);
+    button.action();
+}
+
+/**
+ * Button parent class
+ * 
+ * type sould be "vr" or "3d"
+ * icon should be the id in the SVG file.  It's the xlink:href here.
+ */
+var Button = function(type, icon, canvasId, forwardAction, reverseAction) {
+    
+    // These are callback functions.
+    this.forwardAction = forwardAction;
+    this.reverseAction = reverseAction;
+    
+    // These are properties.
+    this.canvasId = canvasId;
+    this.icon = icon;
+    this.type = type;
+    this.id = type + "_" + canvasId;
+    this.enabled = false;
+    this.active = false;
+    
+    this.html = "<svg class='svgicon'"
+        + " id='" + this.id + "'"
+        + " viewBox='0 0 100 100' width='2em'"
+        + " onClick='buttonAction(&apos;" + this.type + "&apos;, &apos;" + this.canvasId + "&apos;)'>"
+        + "<use xlink:href='#" + this.icon + "'></use></svg>";    
+}
+
+/**
+ * acquireElement()
+ * 
+ * If the DOM element exists, save it as part of the object, so that it only
+ * needs to be discovered once.
+ * 
+ * NOTE: It is presumed that there is only one instance of each button type
+ * per canvas (canvasId).
+ */
+Button.prototype.acquireElement = function() {
+    if  (undefined === this.elem) {
+        this.elem = document.getElementById(this.id);
+   }
+   return this.elem;
+}
+Button.prototype.acquireScene = function() {
+    if (undefined === this.currentScene) {
+        this.currentScene = scenes.currentScene(this.canvasId);
+    }
+    return this.currentScene;
+}
+
+Button.prototype.doAction = function() {
+    this.currentScene = this.acquireScene();
+    if (undefined !== this.currentScene) {
+        this.forwardAction(this.type, this.currentScene, this.elem);
+    }
+}
+Button.prototype.undoAction = function() {
+    this.currentScene = this.acquireScene();
+    if (undefined !== this.currentScene) {
+        this.reverseAction(this.type, this.currentScene, this.elem);
+    }
+}
+ 
+Button.prototype.action = function() {
+    
+    var elem = this.acquireElement();
+    if (undefined === elem) {
+        return;
+    }
+    
+    if (this.active) {
+        elem.style.fill = '#bbb';
+        this.undoAction();
+        this.active = false;
+    } else {
+        elem.style.fill = '#fff';
+        this.doAction();
+        this.active = true;
+    }
+};

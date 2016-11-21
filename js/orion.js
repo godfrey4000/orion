@@ -25,6 +25,64 @@ const THREE_POINTS = "Points";
 // This was in the original template.  It's used in the animate()
 // function.
 //var clock = new THREE.Clock();
+var controls;
+var orientationControls;
+
+// Catch the exit from fullscreen and restore the proper width,height of all
+// the maps.
+if (document.addEventListener) {
+    document.addEventListener('webkitfullscreenchange', sceenHandler, false);
+    document.addEventListener('mozfullscreenchange', sceenHandler, false);
+    document.addEventListener('fullscreenchange', sceenHandler, false);
+    document.addEventListener('MSFullscreenChange', sceenHandler, false);
+}
+
+function sceenHandler() {
+    
+    // The fullscreen API is browser specific.  If these properties are not
+    // null, the browser (and therefore one of its elements) is in fullscreen
+    // mode.
+    if (document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement) {
+
+        // Current implementaion looses which element requested fullscreen
+        // mode.  So we need to change and render them all.  Of course, only
+        // one is displayed.
+        scenes.doWithAll(function(currentScene) {
+            var w = screen.width/2;
+            var h = screen.height;
+            var camera = currentScene.camera;
+            var scale = 0.008256*currentScene.mapParameters.scale;
+            var position = new THREE.Vector3(scale/0.414, 0, 0);
+    
+            camera.aspect = w/h;
+            camera.position.fromArray([0, 0, 0.008256*0.01]);
+            camera.near = 0.008256*3.0;
+            camera.far = scale*50;
+            currentScene.camera.lookAt(position);
+            currentScene.camera.updateProjectionMatrix();
+            currentScene.stereoEffect.setSize(2*w, h);
+            currentScene.effect = 'stereo';
+            renderOnce(currentScene);   
+        });
+    } else {
+        scenes.doWithAll(function(currentScene) {
+            var w = currentScene.mapParameters.width;
+            var h = currentScene.mapParameters.height;
+            var scene = currentScene.scene;
+            var camera = currentScene.camera;
+            var scale = 0.008256*currentScene.mapParameters.scale;
+
+            camera.position.fromArray([0, 0, scale/0.414]);
+            camera.lookAt(scene.position);
+            currentScene.effect = 'none';
+            currentScene.renderer.setSize(w, h);
+            renderOnce(currentScene);
+        });
+    }
+}
 
 // Objects for identifying the star under the mouse pointer and displaying
 // the attribute.  The units of the threshold are world units, which are
@@ -45,6 +103,7 @@ for (var i = 0; i < starMaps.length; i++) {
     console.log('canvas found: ' + starMaps[i].id);
     try {
         mapData = JSON.parse(starMaps[i].dataset.mapParams);
+        console.log(starMaps[i].dataset.mapParams);
         scenes.newScene(mapData);
 
         // Draw the star map.
@@ -54,6 +113,7 @@ for (var i = 0; i < starMaps.length; i++) {
         console.error(err.message);
     }
 };
+
 
 // Make the star maps interactive and start the animate loop.  Doing it here
 // should call the loop only once (I think).
@@ -139,8 +199,9 @@ function draw(mapData)
 function consumeData(msg, mapData, csv) {
     
     var scene = scenes.currentScene(mapData.canvasID);
+    var dnorm = 0.008256;
     try {
-        var starData = toGal(csv);
+        var starData = toGal(csv, dnorm);
         msg.setNumberStars(starData.length);
         addStars(starData, mapData);
         msg.reset();
@@ -159,25 +220,38 @@ function init(sceneP)
     // The scene
     var scene = scenes.currentScene(sceneP.canvasID).scene;
     var msgHandler = scenes.currentScene(sceneP.canvasID).msgHandler;
+    
+    // The new scale.
+    var scale = 0.32*0.0258*sceneP.scale;
 
     /* The camera
      * Tried an orthographic camera, but the sense of depth was lost, so
      * that was rejected.
      */
-    var VIEW_ANGLE = 45, ASPECT = sceneP.width/sceneP.height, NEAR = 2, FAR = sceneP.scale*50;
+//    var VIEW_ANGLE = 45, ASPECT = sceneP.width/sceneP.height, NEAR = 2, FAR = sceneP.scale*50;
+    var VIEW_ANGLE = 45, ASPECT = sceneP.width/sceneP.height, NEAR = 2*0.32*0.0258, FAR = scale*50;
     var camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
     scene.add(camera);
-    camera.position.fromArray(sceneP.position);
+//    camera.position.fromArray(sceneP.position);
+    camera.position.fromArray([0, 0, scale/0.414]);
     camera.lookAt(scene.position);
-
+    
     // The renderer
     var renderer = rendererWrapper.newRenderer();
     renderer.setSize(sceneP.width, sceneP.height);
     var container = document.getElementById(sceneP.canvasID);
     container.appendChild(renderer.domElement);
 
+    var stereoEffect = new THREE.StereoEffect(renderer);
+    var anaglyphEffect = new THREE.AnaglyphEffect(renderer)
+
     // The controls
-    var controls = new THREE.OrbitControls( camera, renderer.domElement );
+    controls = new THREE.OrbitControls( camera, renderer.domElement );
+    orientationControls = new THREE.DeviceOrientation
+    
+    // for now
+//    controls.noPan = true;
+//    controls.noZoom = true;
 
 /**
  * The Skybox does not appear to be required anymore.
@@ -202,12 +276,15 @@ function init(sceneP)
 */
 
     // The coordinate grid
-    grid = new CoordinateGrid(sceneP.scale);
+//    grid = new CoordinateGrid(sceneP.scale);
+    grid = new CoordinateGrid(scale);
     grid.joinScene(scene);
 
     // Save the scene.
     scenes.currentScene(sceneP.canvasID).camera = camera;
     scenes.currentScene(sceneP.canvasID).renderer = renderer;
+    scenes.currentScene(sceneP.canvasID).stereoEffect = stereoEffect;
+    scenes.currentScene(sceneP.canvasID).anaglyphEffect = anaglyphEffect;
     
     // Update the message line below the star map.
     msgHandler.init(rendererWrapper.engine);
@@ -298,6 +375,8 @@ function render()
     var scene = currentScene.scene;
     var camera = currentScene.camera;
     var renderer = currentScene.renderer;
+    var stereoEffect = currentScene.stereoEffect;
+    var anaglyphEffect = currentScene.anaglyphEffect;
     var msgHandler = currentScene.msgHandler;
     
     raycaster.setFromCamera(mouse, camera);
@@ -334,15 +413,29 @@ function render()
         }
     }
     
-    renderer.render( scene, camera );
+//    renderer.render( scene, camera );
+//    anaglyphEffect.render(scene, camera);
+//    stereoEffect.render(scene, camera);
+    renderOnce(currentScene);
 };
 
 function renderOnce(currentScene) {
     
     var scene = currentScene.scene;
     var camera = currentScene.camera;
-    var renderer = currentScene.renderer;
     
-    renderer.render(scene, camera);
-    console.info("Rendered scene " + currentScene.mapParameters.canvasID);
+    switch (currentScene.effect) {
+        case 'anaglyph':
+            var analglyphEffect = currentScene.anaglyphEffect;
+            analglyphEffect.render(scene, camera);
+            break;
+        case 'stereo':
+            var stereoEffect = currentScene.stereoEffect;
+            stereoEffect.render(scene, camera);
+            break;
+        default:
+            var renderer = currentScene.renderer;
+            renderer.render(scene, camera);
+    }
+//    console.info("Rendered scene " + currentScene.mapParameters.canvasID);
 }

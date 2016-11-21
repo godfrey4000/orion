@@ -17,13 +17,13 @@ and open the template in the editor.
     border-collapse: collapse;
 }
 .starMapMsg table, th, td {
-    border: 1px solid #999;
+    border: 1px solid #777;
 }
 .starMapMsg td {
     background: #000;
     font-family: sans-serif;
     font-size: 0.7em;
-    color: #ccc;
+    color: #bbb;
     height: 1.7em;
     padding: 0 0.5em 0 0.5em;
     vertical-align: center;
@@ -31,4 +31,15 @@ and open the template in the editor.
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Cardboard SVG.
+** The icon at the bottom of the star map that launches a fullscreen
+** VR display for Google cardboard.
+*/
+.svgicon {
+    fill: #bbb;
+}
+.svgicon:hover {
+    fill: #7ff;
 }

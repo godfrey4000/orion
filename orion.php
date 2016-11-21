@@ -35,7 +35,14 @@ function orion_build_scene_div( $atts )
 	// to pass all the star map data to the JavaScript Three.js
 	// library.
 	$jsonParams = json_encode($atts);
-	$html = '<div class="starMap" id="' . $id . '"'
+
+        // Include the two svg icons for the cardboard viewer and the
+        // 3D glasses.
+	$svgCardboard = file_get_contents(dirname( __FILE__) . '/images/cardboard.svg');
+	$svgGlasses = file_get_contents(dirname(__FILE__) . '/images/glasses3d.svg');
+
+	$html = $svgCardboard . $svgGlasses
+                        . '<div class="starMap" id="' . $id . '"'
 			. ' style="width: ' . $w . 'px;'
 			. ' height: ' . $h. 'px;"'
 			. ' data-map-params=\'' . $jsonParams . '\'></div>'
@@ -61,6 +68,8 @@ function orion_enqueue_scripts()
 	wp_register_script( 'Detector_js', plugin_dir_url(__FILE__) . 'js/Detector.js');
 	wp_register_script( 'Projector_js', plugin_dir_url(__FILE__) . 'js/Projector.js');
 	wp_register_script( 'Canvas_js', plugin_dir_url(__FILE__) . 'js/CanvasRenderer.js');
+	wp_register_script( 'Stereo_js', plugin_dir_url(__FILE__) . 'js/StereoEffect.js');
+	wp_register_script( 'Anaglyph_js', plugin_dir_url(__FILE__) . 'js/AnaglyphEffect.js');
 	wp_register_script( 'OrbitControls_js', plugin_dir_url(__FILE__) . 'js/OrbitControls.js');
         wp_register_script( 'astro_js', plugin_dir_url(__FILE__) . 'js/astro.js');
 	wp_register_script( 'utils_js', plugin_dir_url(__FILE__) . 'js/utils.js');
@@ -72,6 +81,8 @@ function orion_enqueue_scripts()
 	wp_enqueue_script('Three_js');
 	wp_enqueue_script('Projector_js');
 	wp_enqueue_script('Canvas_js');
+        wp_enqueue_script('Stereo_js');
+        wp_enqueue_script('Anaglyph_js');
 	wp_enqueue_script('Detector_js');
 	wp_enqueue_script('OrbitControls_js');
         wp_enqueue_script('astro_js');
