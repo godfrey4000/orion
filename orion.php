@@ -71,6 +71,7 @@ function orion_enqueue_scripts()
 	wp_register_script( 'Stereo_js', plugin_dir_url(__FILE__) . 'js/StereoEffect.js');
 	wp_register_script( 'Anaglyph_js', plugin_dir_url(__FILE__) . 'js/AnaglyphEffect.js');
 	wp_register_script( 'OrbitControls_js', plugin_dir_url(__FILE__) . 'js/OrbitControls.js');
+	wp_register_script( 'OrientControls_js', plugin_dir_url(__FILE__) . 'js/DeviceOrientationControls.js');
         wp_register_script( 'astro_js', plugin_dir_url(__FILE__) . 'js/astro.js');
 	wp_register_script( 'utils_js', plugin_dir_url(__FILE__) . 'js/utils.js');
 	wp_register_script( 'orion_js', plugin_dir_url(__FILE__) . 'js/orion.js');
@@ -85,6 +86,7 @@ function orion_enqueue_scripts()
         wp_enqueue_script('Anaglyph_js');
 	wp_enqueue_script('Detector_js');
 	wp_enqueue_script('OrbitControls_js');
+	wp_enqueue_script('OrientControls_js');
         wp_enqueue_script('astro_js');
 	wp_enqueue_script('utils_js');
 	wp_enqueue_script('orion_js');

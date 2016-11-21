@@ -247,14 +247,6 @@ SceneManager.prototype.makeInteractive = function(mousemove, mouseover, mouseout
         elem.addEventListener("mouseout", function() {
             onMouseOut(this);
         });
-        
-//        vrElem.addEventListener("click", function() {
-//            this.mozRequestFullScreen();
-//            scene.camera.aspect = window.innerWidth/window.innerHeight;
-//            scene.camera.updateProjectionMatrix();
-//            scene.renderer.setSize(window.innerWidth, window.innerHeight);
-//            renderOnce(scene);
-//        });
     }
 };
 
@@ -713,15 +705,19 @@ Star.prototype.color = function() {
 
 function launchVR(buttonType, currentScene) {
     if (WEBGL !== rendererWrapper.engine) {
-        var msg = "Attempt to set effect to sterio ignored.";
+        var msg = "Attempt to set effect to stereo ignored.";
         msg = msg + " WebGL renderer is not in use.";
         console.warn(msg);
         return;
     }
-    
+
     // The fullscreen API is implemented a little differently in the browser
-    // engines.
-    var i = document.getElementById(currentScene.mapParameters.canvasID);
+    // engines.  Making the canvas element--the child of the <div> that is the
+    // star map--solves the problem of the full screen version not being
+    // centered.  It also solves the problem of the layout being correct when
+    // leaving fullscreen mode.
+    var p = document.getElementById(currentScene.mapParameters.canvasID);
+    var i = p.children[0];
     if (i.requestFullscreen) {
             i.requestFullscreen();
     } else if (i.webkitRequestFullscreen) {
@@ -732,14 +728,23 @@ function launchVR(buttonType, currentScene) {
             i.msRequestFullscreen();
     }
 
-//    var w = screen.width/2;
-//    var h = screen.height;
-//    currentScene.camera.aspect = w/h;
-//    currentScene.camera.updateProjectionMatrix();
-//    currentScene.stereoEffect.setSize(2*w, h);
-//    currentScene.effect = 'stereo';
-//    renderOnce(currentScene);   
+    var w = screen.width/2;
+    var h = screen.height;
+
+    // For the stereo effect, the aspect is for each side.
+    var aspect = w/h;
+    currentScene.camera.aspect = aspect;
+
+    currentScene.camera.updateProjectionMatrix();
+    currentScene.stereoEffect.setSize(2*w, h, true);
+    currentScene.effect = 'stereo';
+
+    renderOnce(currentScene);
+
+    // This makes the device orientation controls active.
+    controls.connect();
 }
+
 function setAnaglyph(buttonType, currentScene) {
     if (WEBGL !== rendererWrapper.engine) {
         var msg = "Attempt to set effect to anaglyph ignored.";
@@ -772,6 +777,9 @@ var MapMessageLine = function(mapParameters) {
     // The canvas DOM element and the scene that owns this.
     this.canvasID = mapParameters.canvasID;
     this.mapParameters = mapParameters;
+    
+    // Remember which renderer being used.
+    this.engine = rendererWrapper.engine;
     
     // The number of stars.  Either this is diplayed as "# stars", or in its
     // place the attribute (e.g., Arcturus) from the star data source.
@@ -849,9 +857,6 @@ MapMessageLine.prototype.init = function (engine) {
         // Large
         this.scale = "Grid spacing: " + sp.toString() + "&thinsp;ly";
     }
-  
-//    this.state = MSG_NORMAL;
-//    this.update();
 };
 
 MapMessageLine.prototype.setNumberStars = function(nbrStars) {
@@ -934,8 +939,6 @@ MapMessageLine.prototype.update = function() {
     
     var html;
     var id = "msg_" + this.canvasID;
-//    var id2 = "vr_" + this.canvasID;
-//    var id3 = "3d_" + this.canvasID;
     var msgline = document.getElementById(id);
     
     // The right field in the message line can be the number of stars,
@@ -963,11 +966,13 @@ MapMessageLine.prototype.update = function() {
             break;
         case MSG_NORMAL:
             html = "<table class='starMapMsg' width='100%'><tr>"
-                    + "<td style='width: 60px;'>"
-//                    + "<svg class='svgicon' id='" + id2 + "' viewBox='0 0 100 100' width='2em'><use xlink:href='#icon-cardboard'></use></svg>"
-//                    + "<svg class='svgicon' id='" + id3 + "' viewBox='0 0 100 100' width='2em'><use xlink:href='#icon-glasses'></use></svg></td>"
-                    + this.buttonVR.html
-                    + this.button3D.html + "</td>"
+                    + "<td style='width: 60px;'>";
+            if ('WebGL' === this.renderer) {
+                    html = html + this.buttonVR.html + this.button3D.html;
+            } else {
+                    html = html + this.renderer;
+            }
+            html = html + "</td>"
                     + "<td style='width: 40%;'>" + this.scale + "</td>"
                     + "<td style='width: 60%;'>" + this.starInfo + "</td>"
                     + "</tr></table>";
