@@ -8,7 +8,7 @@ const PI2 = Math.PI * 2;
 // cardboard by mikicon from the Noun Project
 
 // Material properties
-const SIZE_ATTENUATION = false;
+const SIZE_ATTENUATION = true;
 const TRANSPARENT = true;
 
 // Star class constants
@@ -19,7 +19,7 @@ const MARK_RING = 3;
 const LIFE_RING = 4;
 
 // Images
-const STAR_IMG = '/wp-content/plugins/orion/images/disc.png';
+const STAR_IMG = '/wp-content/plugins/orion/images/spikey.png';
 const RING_IMG = '/wp-content/plugins/orion/images/ring.png';
 const CARDBOARD_IMG = '/wp-content/plugins/orion/images/cardboard2.svg';
 const GLASSES3D_IMG = '/wp-content/plugins/orion/images/glasses2.svg';
@@ -413,7 +413,7 @@ var MaterialManager = function() {
      */
     // Dim stars.
     this.materialDim = new THREE.PointsMaterial({
-      size: 3.25,
+      size: 4,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapStar,
       blending: THREE.AdditiveBlending,
@@ -423,7 +423,7 @@ var MaterialManager = function() {
     
     // Medium-bright stars.
     this.materialMedium = new THREE.PointsMaterial({
-      size: 6,
+      size: 10,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapStar,
       blending: THREE.AdditiveBlending,
@@ -433,7 +433,7 @@ var MaterialManager = function() {
     
     // Bright stars.
     this.materialBright = new THREE.PointsMaterial({
-      size: 9,
+      size: 16,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapStar,
       blending: THREE.AdditiveBlending,
@@ -447,7 +447,7 @@ var MaterialManager = function() {
      */
     // A ring for marking stars.
     this.materialRingMark = new THREE.PointsMaterial({
-      size: 9,
+      size: 6,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0xff0000,
@@ -460,7 +460,7 @@ var MaterialManager = function() {
     // harbor life.  The opacity for this ring is lower than for the marking
     // ring.  That's because the life ring is green, which is very bright.
     this.materialRingLife = new THREE.PointsMaterial({
-      size: 9,
+      size: 6,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0x00ff00,
@@ -481,7 +481,7 @@ var MaterialManager = function() {
     // Stars (canvas renderer)
     this.program = function ( context ) {
         context.beginPath();
-        context.arc( 0, 0, 0.20, 0, PI2, true );
+        context.arc( 0, 0, 22.5, 0, PI2, true );
         context.fill();
     };
     this.materialCStar = new THREE.SpriteCanvasMaterial({
@@ -728,8 +728,18 @@ function launchVR(buttonType, currentScene) {
             i.msRequestFullscreen();
     }
 
-    var w = screen.width/2;
-    var h = screen.height;
+    //  There is a deviceOrientation property, but no documentation to explain
+    //  how to interpret the values.  So assume the larger dimension is width.
+    var x = screen.width;
+    var y = screen.height;
+    var w, h;
+    if (x > y) {
+        w = x/2;
+        h = y;
+    } else {    
+        w = y/2;
+        h = x;
+    }
 
     // For the stereo effect, the aspect is for each side.
     var aspect = w/h;
@@ -743,6 +753,10 @@ function launchVR(buttonType, currentScene) {
 
     // This makes the device orientation controls active.
     controls.connect();
+    
+    // Look at the Sun (or the origin).
+    var origin = new THREE.Vector3(0, 0, 0);
+    currentScene.camera.lookat(origin);
 }
 
 function setAnaglyph(buttonType, currentScene) {

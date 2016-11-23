@@ -22,9 +22,21 @@
 // THREE constants.
 const THREE_POINTS = "Points";
 
+// Scene geometry constants.  These distances are in inches.  The units of the
+// scene is lightyears.
+const SCENE_RADIUS = 36;
+const OBSERVER_DISTANCE = 69;
+const CAMERA_NEAR = 24;
+const CAMERA_FAR = 3600; // 300 feet
+const STD_SCALE = 125;
+var PERSPECT = OBSERVER_DISTANCE/SCENE_RADIUS;
+var CAMERA_FOV = 2*180/Math.PI*Math.asin(SCENE_RADIUS/OBSERVER_DISTANCE);
+
+// This number is lightyears/inch.
+const DIST_NORM = STD_SCALE/SCENE_RADIUS;
+
 var container, controls, orbitControls;
 //const DIST_NORM = 0.008256;
-const DIST_NORM = 1.0;
 
 // Catch the exit from fullscreen and restore the proper width,height of all
 // the maps.
@@ -61,10 +73,11 @@ function screenHandler() {
 }
 
 // Objects for identifying the star under the mouse pointer and displaying
-// the attribute.  The units of the threshold are world units, which are
-// independent of scale.
+// the attribute.  The units of the threshold are lightyears.  The mean
+// separation of stars in the solar neighborhood is about 4 ly.  25% of this
+// value seems to work well.
 var raycaster = new THREE.Raycaster();
-raycaster.params.Points.threshold = DIST_NORM*1.5;
+raycaster.params.Points.threshold = 1.0;
 var mouse = new THREE.Vector2();
 
 /**
@@ -174,7 +187,7 @@ function consumeData(msg, mapData, csv) {
     
     var scene = scenes.currentScene(mapData.canvasID);
     try {
-        var starData = toGal(csv, DIST_NORM);
+        var starData = toGal(csv, 1);
         msg.setNumberStars(starData.length);
         addStars(starData, mapData);
         msg.reset();
@@ -193,13 +206,17 @@ function init(sceneP)
     var currentScene = scenes.currentScene(sceneP.canvasID);
     var scene = currentScene.scene;
     var msgHandler = currentScene.msgHandler;
-    var scale = DIST_NORM*sceneP.scale;
+    var scale = sceneP.scale;
 
-    camera = new THREE.PerspectiveCamera(45, sceneP.width / sceneP.height, DIST_NORM*0.2, scale*50);
+    camera = new THREE.PerspectiveCamera(
+            CAMERA_FOV,
+            sceneP.width/sceneP.height,
+            DIST_NORM*CAMERA_NEAR,
+            DIST_NORM*CAMERA_FAR);
     scene.add(camera);
-    camera.position.fromArray([0, 0, scale/0.414]);
+    camera.position.fromArray([0, 0, PERSPECT*scale]);
     camera.lookAt(scene.position);
-
+    
     var renderer = rendererWrapper.newRenderer();
     renderer.setSize(sceneP.width, sceneP.height);
     container = document.getElementById(sceneP.canvasID);
@@ -207,7 +224,7 @@ function init(sceneP)
 
     var stereoEffect = new THREE.StereoEffect(renderer);
     var anaglyphEffect = new THREE.AnaglyphEffect(renderer);
-    camera.focus = scale/0.414;
+    camera.focus = PERSPECT*scale;
 
     orbitControls = new THREE.OrbitControls( camera, renderer.domElement );
     controls = new THREE.DeviceOrientationControls( camera );

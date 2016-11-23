@@ -34651,7 +34651,7 @@
     	this.aspect = 1;
 
 //    	this.eyeSep = 0.064;
-    	this.eyeSep = 0.064/0.008256;
+    	this.eyeSep = 8.6121;
 
     	this.cameraL = new PerspectiveCamera();
     	this.cameraL.layers.enable( 1 );
