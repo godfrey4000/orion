@@ -26,7 +26,7 @@ const THREE_POINTS = "Points";
 // scene is lightyears.
 const SCENE_RADIUS = 36;
 const OBSERVER_DISTANCE = 69;
-const CAMERA_NEAR = 24;
+const CAMERA_NEAR = 6;
 const CAMERA_FAR = 3600; // 300 feet
 const STD_SCALE = 125;
 var PERSPECT = OBSERVER_DISTANCE/SCENE_RADIUS;
@@ -234,10 +234,10 @@ function init(sceneP)
     grid.joinScene(scene);
 
     // Save the scene.
-    scenes.currentScene(sceneP.canvasID).camera = camera;
-    scenes.currentScene(sceneP.canvasID).renderer = renderer;
-    scenes.currentScene(sceneP.canvasID).stereoEffect = stereoEffect;
-    scenes.currentScene(sceneP.canvasID).anaglyphEffect = anaglyphEffect;
+    currentScene.camera = camera;
+    currentScene.renderer = renderer;
+    currentScene.stereoEffect = stereoEffect;
+    currentScene.anaglyphEffect = anaglyphEffect;
     
     // Update the message line.
     msgHandler.init(rendererWrapper.engine);

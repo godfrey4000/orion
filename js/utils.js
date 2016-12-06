@@ -359,8 +359,8 @@ SceneManager.prototype.renderStars = function(mapP) {
         var material;
         var star;
         var starClass;
-        var scale = 0.008256*this.scenes[ptr].mapParameters.scale;
-        var cscale = Math.pow(scale, 0.8)/Math.sqrt(1000);
+        var scale = this.scenes[ptr].mapParameters.scale;
+        var cscale = Math.pow(scale, 0.85)/Math.sqrt(1000);
 
         for (j = 0; j < stars.length; j++) {
 
@@ -481,7 +481,7 @@ var MaterialManager = function() {
     // Stars (canvas renderer)
     this.program = function ( context ) {
         context.beginPath();
-        context.arc( 0, 0, 22.5, 0, PI2, true );
+        context.arc( 0, 0, 0.225, 0, PI2, true );
         context.fill();
     };
     this.materialCStar = new THREE.SpriteCanvasMaterial({
