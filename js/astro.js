@@ -21,27 +21,36 @@ var toGal = function(eq, dnorm) {
     eq.forEach( function(d,i) {
         
         // The CSV from services like VizieR sometimes include records with
-        // missing values.  The THREE.js library expect to do math operations
+        // missing values.  The THREE.js library expects to do math operations
         // on these values.  Anything that's not a number must be excluded.
         var ra = parseFloat(d.ra);
         var dec = parseFloat(d.dec);
         var plx = parseFloat(d.Plx);
-        var mag = parseFloat(d.Vmag);
-        if (isNaN(ra) || isNaN(dec) || isNaN(plx) || isNaN(mag)) {
-            console.info("Record " + i.toString() + " missing ra or dec.");
+        if (isNaN(ra) || isNaN(dec) || isNaN(plx)) {
+            console.info("Record " + i.toString() + " missing ra, dec or Plx");
             return;
         }
         
-        var dist, Amag;
+        var dist;
         var n = {}, g = {};
-        var tagged, attribute;
+        var tagged, habitable, attribute, spectrum, temperature, luminosity;
         
         // Compute the distance (in light years) from the parallax.
         dist = dnorm*3262/plx;
         
         // Compute the absolute magnitude from the parallax and the apparent
         // magnitude.
-        Amag = 1.0*mag + 5*Math.log10(plx/100);
+        if (d.Amag !== undefined) {
+            var Amag = parseFloat(d.Amag);
+        }
+        else if (d.Vmag !== undefined) {
+            var mag = parseFloat(d.Vmag);
+            var Amag = 1.0*mag + 5*Math.log10(plx/100);
+        }
+        else {
+            console.info("Record " + i.toString() + " missing Vmag or Amag");
+            return;
+        }
 
         // Convert to cartesian equitorial coordinates.
         n = {
@@ -62,15 +71,30 @@ var toGal = function(eq, dnorm) {
         if (d.tagged !== undefined) {
             tagged = (d.tagged.length > 0 && parseInt(d.tagged) > 0);
         }
+        if (d.habitable !== undefined && d.habitable.length > 0) {
+            habitable = (parseInt(d.habitable) > 0);
+        }
         if (d.attr !== undefined && d.attr.length > 0) {
             attribute = d.attr;
+        }
+        if (d.SpType !== undefined && d.SpType.length > 0) {
+            spectrum = d.SpType.charAt(0);
+        }
+        if (d.teff !== undefined) {
+            temperature = parseFloat(d.teff);
+        }
+        if (d.lum !== undefined) {
+            luminosity = parseFloat(d.lum);
         }
         galData[i] = {
           position: g,
           magnitude: Amag,
-          spectrum: d.SpType.charAt(0),
+          spectrum: spectrum,
           tagged: tagged,
-          attribute: attribute
+          habitable: habitable,
+          attribute: attribute,
+          temperature: temperature,
+          luminosity: luminosity
         };
     });
     return galData;
