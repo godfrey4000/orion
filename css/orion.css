@@ -37,13 +37,17 @@ canvas {
     text-overflow: ellipsis;
 }
 
-/* Cardboard SVG.
-** The icon at the bottom of the star map that launches a fullscreen
-** VR display for Google cardboard.
+/*
+** The cardboard works in a limited capacity.  The 3D-glasses does not work at
+** all, and is made grey to show that.  The play button starts the camera
+** moving.
 */
 .svgicon {
     fill: #bbb;
 }
 .svgicon:hover {
     fill: #7ff;
+}
+.svgiconDisabled {
+    fill: #666;
 }
