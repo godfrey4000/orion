@@ -22,21 +22,45 @@
 // THREE constants.
 const THREE_POINTS = "Points";
 
-// Scene geometry constants.  These distances are in inches.  The units of the
-// scene is lightyears.
+// SCENE GEOMETRY CONSTANTS
+// 
+// The scene is intended to fit on top of a large dining room table, to give
+// the viewer a satisfying 3D perspective.  The viewer, when the scene is
+// initiall rendered, is 60 inches from the center of the scene, and the scene
+// fits inside a sphere of radius 36 inches.
+// 
+// Units:
+// The units for setting the constants prescribing the camera charactristics
+// are in inches.  These are the constants just below.  The application,
+// however is in light years, and so a scale to map inches to light years is
+// calculated from the scale parameter passed to this probram.
+//
+// The scale parameter is the distance from the center of the scene to the
+// edge, in light years.  This establishes the conversion factor.  (See comment
+// below.)
 const SCENE_RADIUS = 36;
-const OBSERVER_DISTANCE = 69;
-const CAMERA_NEAR = 6;
-const CAMERA_FAR = 3600; // 300 feet
-const STD_SCALE = 125;
-var PERSPECT = OBSERVER_DISTANCE/SCENE_RADIUS;
-var CAMERA_FOV = 2*180/Math.PI*Math.asin(SCENE_RADIUS/OBSERVER_DISTANCE);
+const OBSERVER_DISTANCE = 60;
+const CAMERA_NEAR = 2;
+const CAMERA_FAR = 360; // 30 feet
+const EYE_SEPARATION = 3;
 
-// This number is lightyears/inch.
-const DIST_NORM = STD_SCALE/SCENE_RADIUS;
+const PERSPECT = OBSERVER_DISTANCE/SCENE_RADIUS;
+const CAMERA_FOV = 2*180/Math.PI*Math.asin(SCENE_RADIUS/OBSERVER_DISTANCE);
+
+// The screen width, from one edge to the other in the x-direction, in the x-y
+// plane.  The conversion factor is this value in inches = the parameter scale
+// in light years.  The factor will be calculated in init() when the scale
+// parameter is known.
+const SCREEN_WIDTH = 2*OBSERVER_DISTANCE*Math.tan(Math.PI/360*CAMERA_FOV);
+var STD_SCALE;
+var CAMERA_DISTANCE; // Initial distance of the camera, in light years.
+
+// The camera advances by this many lightyears per frame in movie mode.  These
+// values are set in init().
+var MOVIE_STEP;
+var MOVIE_DIRECTION;
 
 var container, controls, orbitControls;
-//const DIST_NORM = 0.008256;
 
 // Catch the exit from fullscreen and restore the proper width,height of all
 // the maps.
@@ -206,41 +230,86 @@ function init(sceneP)
     var currentScene = scenes.currentScene(sceneP.canvasID);
     var scene = currentScene.scene;
     var msgHandler = currentScene.msgHandler;
-    var scale = sceneP.scale;
+    
+    // This is the conversion inches to light years.  See comments at the top
+    // of this file.  Half the screen width in inches equals the scale in
+    // light years.
+    STD_SCALE = 2*sceneP.scale/SCREEN_WIDTH;
 
     camera = new THREE.PerspectiveCamera(
             CAMERA_FOV,
             sceneP.width/sceneP.height,
-            DIST_NORM*CAMERA_NEAR,
-            DIST_NORM*CAMERA_FAR);
+            STD_SCALE*CAMERA_NEAR,
+            STD_SCALE*CAMERA_FAR);
     scene.add(camera);
-    camera.position.fromArray([0, 0, PERSPECT*scale]);
-    camera.lookAt(scene.position);
     
+    // Default initial position of the camera is a position on a line
+    // perpendicular to the galactic plane, directly above the sun, at a
+    // distance so that the 11x11 grid is just entirely in view.
+    var origin = new THREE.Vector3();
+    if (sceneP.position !== undefined) {
+        // The camera is placed at the specified position, pointing at the sun,
+        // which is located at the origin.
+        position = sceneP.position
+        var p = new THREE.Vector3(position[0], position[1], position[2]);
+        camera.position.copy(p);
+        camera.lookAt(origin);
+        
+        // Rotate the camer so the galactic plane.
+        //var cameraRotation = new THREE.Euler(0, 0, 45.0*Math.PI/180.0, 'XYZ');
+        //var world = camera.matrixWorld;
+        //var proj = camera.projectionMatrix;
+        camera.up.set(0, 0, 1);
+    }
+    else {
+        camera.position.fromArray([0, 0, STD_SCALE*OBSERVER_DISTANCE]);
+        camera.lookAt(origin);
+    }
+    
+    // The movie step is based on 16 frames per second for a five-minute pass
+    // from PERSPECT*scale to the opposite PERSPECT*scale.
+    MOVIE_STEP = (2*STD_SCALE*OBSERVER_DISTANCE)/(5*60*16);
+    MOVIE_DIRECTION = camera.position.clone();
+    MOVIE_DIRECTION.normalize();
+    MOVIE_DIRECTION.multiplyScalar(-1*MOVIE_STEP);
+
     var renderer = rendererWrapper.newRenderer();
     renderer.setSize(sceneP.width, sceneP.height);
     container = document.getElementById(sceneP.canvasID);
     container.appendChild(renderer.domElement);
 
+    // These effects are no longer supported in the Three.js project.  The
+    // code does not work properly and there's no documentation.  Posts on
+    // StackOverflow suggest that it's all been abandonded for VREffect and
+    // WebVR.
+    //      So for now, this is turned off.  At a later point, this will be
+    // replaced with VREffect.  However, to do that requres a headset and a
+    // WebVR enabled browser.
+    //      In this form, the stereo effect is just a straight view forward for
+    // both eyes, coupled to the device orientation controls.  There is no 3D.
+    // the anaglyph effect does not work at all.
     var stereoEffect = new THREE.StereoEffect(renderer);
-    var anaglyphEffect = new THREE.AnaglyphEffect(renderer);
-    camera.focus = PERSPECT*scale;
+    //var anaglyphEffect = new THREE.AnaglyphEffect(renderer, sceneP.width, sceneP.height);
+    stereoEffect.setEyeSeparation(STD_SCALE*EYE_SEPARATION);
 
     orbitControls = new THREE.OrbitControls( camera, renderer.domElement );
     controls = new THREE.DeviceOrientationControls( camera );
     controls.disconnect();
 
-    var grid = new CoordinateGrid(scale);
+    //var grid = new CoordinateGrid(sceneP.scale);
+    // grid.joinScene(scene);
+    var grid = new CylindricalGrid(sceneP.scale);
     grid.joinScene(scene);
 
     // Save the scene.
     currentScene.camera = camera;
+    currentScene.grid = grid;
     currentScene.renderer = renderer;
     currentScene.stereoEffect = stereoEffect;
-    currentScene.anaglyphEffect = anaglyphEffect;
+    //currentScene.anaglyphEffect = anaglyphEffect;
     
     // Update the message line.
-    msgHandler.init(rendererWrapper.engine);
+    msgHandler.init(rendererWrapper.engine, grid);
 };
 
 
@@ -288,9 +357,36 @@ function onMouseOut(elem) {
 function animate()
 {
     requestAnimationFrame( animate );
+
+    // Check for a scene with focus.
+    currentScene = scenes.currentScene();
+    if (undefined === currentScene) {
+        return;
+    }
     controls.update();
+
+    // If movie playback is active, advance the camera position.
+    if (currentScene.animation === 'movie') {
+        
+        // The value for step is in light-years per frame.
+        var p = new THREE.Vector3(0, 0, 0);
+        p.copy(camera.position);
+
+        // When the camera reaches the scene radius, make a 180 degree turn and
+        // continue.
+    //    if (STD_SCALE*SCENE_RADIUS < p.length()) {
+    //        MOVIE_DIRECTION = -1*MOVIE_DIRECTION;
+    //    }
+
+        // Move the camera one MOVIE_STEP.
+        p = p.add(MOVIE_DIRECTION);
+        camera.position.copy(p);
+    }
+    
+    // And then render the scene.
     render();
 };
+
 
 function render()
 {
@@ -302,6 +398,9 @@ function render()
 
     var scene = currentScene.scene;
     var camera = currentScene.camera;
+//    var wm = new THREE.Matrix4();
+//    wm = camera.worldMatrix;
+    
 //    var renderer = currentScene.renderer;
 //    var stereoEffect = currentScene.stereoEffect;
 //    var anaglyphEffect = currentScene.anaglyphEffect;
@@ -316,7 +415,7 @@ function render()
     // number of selected items to less that 10 excludes the condition at
     // startup.
     //
-    // TODO: The racaster object has a intersetObject method that can
+    // TODO: The raycaster object has a intersetObject method that can
     // consider only the Points objects.  That will solve this problem, plus
     // it's more efficient.
     if (intersects.length < 10) {
@@ -374,10 +473,10 @@ function renderOnce(currentScene) {
     var camera = currentScene.camera;
     
     switch (currentScene.effect) {
-        case 'anaglyph':
-            var analglyphEffect = currentScene.anaglyphEffect;
-            analglyphEffect.render(scene, camera);
-            break;
+//        case 'anaglyph':
+//            var analglyphEffect = currentScene.anaglyphEffect;
+//            analglyphEffect.render(scene, camera);
+//            break;
         case 'stereo':
             var stereoEffect = currentScene.stereoEffect;
             stereoEffect.render(scene, camera);

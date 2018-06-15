@@ -8,21 +8,26 @@ const PI2 = Math.PI * 2;
 // cardboard by mikicon from the Noun Project
 
 // Material properties
-const SIZE_ATTENUATION = true;
+const SIZE_ATTENUATION = false;
 const TRANSPARENT = true;
 
 // Star class constants
 const DIM_STAR = 0;
 const MEDIUM_STAR = 1;
 const BRIGHT_STAR = 2;
-const MARK_RING = 3;
-const LIFE_RING = 4;
+const VERYDIM_STAR = 3;
+const VERYBRIGHT_STAR = 4;
+const MARK_RING = 5;
+const LIFE_RING = 6;
+const HABITABLE_RING = 7;
 
 // Images
-const STAR_IMG = '/wp-content/plugins/orion/images/spikey.png';
-const RING_IMG = '/wp-content/plugins/orion/images/ring.png';
-const CARDBOARD_IMG = '/wp-content/plugins/orion/images/cardboard2.svg';
-const GLASSES3D_IMG = '/wp-content/plugins/orion/images/glasses2.svg';
+const STAR_IMG = 'images/disc.png';
+const RING_IMG = 'images/ring.png';
+const MARK_RING_RED = 'images/ring-red.png';
+const MARK_RING_GREEN = 'images/ring-green.png';
+const CARDBOARD_IMG = 'images/cardboard2.svg';
+const GLASSES3D_IMG = 'images/glasses2.svg';
 
 // Render engines
 const CANVAS = 0;
@@ -103,15 +108,15 @@ RendererWrapper.prototype.newRenderer = function() {
         //
         // Thanks to yongnan on StackOverflow.  His question gave me the idea
         // for this work-around.
-        var gl = renderer.getContext();
-        if (!gl.getExtension("OES_texture_half_float")) {
-            console.warn("No OES_texture_half_float support.  Falling back to the canvas renderer.");
-            
-            delete renderer;
-            this.engine = CANVAS;
-            renderer = new THREE.CanvasRenderer(); 
-            renderer.setPixelRatio(window.devicePixelRatio);    
-        }
+//        var gl = renderer.getContext();
+//        if (!gl.getExtension("OES_texture_half_float")) {
+//            console.warn("No OES_texture_half_float support.  Falling back to the canvas renderer.");
+//            
+//            delete renderer;
+//            this.engine = CANVAS;
+//            renderer = new THREE.CanvasRenderer(); 
+//            renderer.setPixelRatio(window.devicePixelRatio);    
+//        }
     } else {
         renderer = new THREE.CanvasRenderer(); 
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -154,6 +159,7 @@ SceneManager.prototype.newScene = function(mapParameters) {
     // elsewhere.
     var scene = new THREE.Scene();
     var camera;
+    var grid;
     var renderer;
     var stereoEffect;
     var anaglyphEffect;
@@ -166,6 +172,7 @@ SceneManager.prototype.newScene = function(mapParameters) {
    this.scenes.push({
       scene: scene,
       camera: camera,
+      grid: grid,
       renderer: renderer,
       effect: 'none',
       stereoEffect: stereoEffect,
@@ -276,6 +283,11 @@ SceneManager.prototype.renderStars = function(mapP) {
     if (WEBGL === rendererWrapper.engine) {
 
         // The point clouds
+        var verydimGeometry = new THREE.Geometry();
+        var verydimStars = new THREE.Points(verydimGeometry, materialManager.material(VERYDIM_STAR));
+        var verydimColors = [];
+        var verydimAttributes = [];
+
         var dimGeometry = new THREE.Geometry();
         var dimStars = new THREE.Points(dimGeometry, materialManager.material(DIM_STAR));
         var dimColors = [];
@@ -291,11 +303,19 @@ SceneManager.prototype.renderStars = function(mapP) {
         var brightColors = [];
         var brightAttributes = [];
 
+        var verybrightGeometry = new THREE.Geometry();
+        var verybrightStars = new THREE.Points(verybrightGeometry, materialManager.material(VERYBRIGHT_STAR));
+        var verybrightColors = [];
+        var verybrightAttributes = [];
+
         var markedGeometry = new THREE.Geometry();
         var markedStars = new THREE.Points(markedGeometry, materialManager.material(MARK_RING));
 
         var lifeGeometry = new THREE.Geometry();
         var lifeStars = new THREE.Points(lifeGeometry, materialManager.material(LIFE_RING));
+
+        var habitableGeometry = new THREE.Geometry();
+        var habitableStars = new THREE.Points(habitableGeometry, materialManager.material(HABITABLE_RING));
 
         var star;
         var starClass;
@@ -307,6 +327,14 @@ SceneManager.prototype.renderStars = function(mapP) {
             }
             if (starClass.life) {
                 lifeGeometry.vertices.push(star.vertex);
+            }
+            if (starClass.habitable) {
+                habitableGeometry.vertices.push(star.vertex);
+            }
+            if (starClass.class === VERYDIM_STAR) {
+                verydimGeometry.vertices.push(star.vertex);
+                verydimColors.push(star.color());
+                verydimAttributes.push(star.attribute);
             }
             if (starClass.class === DIM_STAR) {
                 dimGeometry.vertices.push(star.vertex);
@@ -323,35 +351,50 @@ SceneManager.prototype.renderStars = function(mapP) {
                 brightColors.push(star.color());
                 brightAttributes.push(star.attribute);
             }
+            if (starClass.class === VERYBRIGHT_STAR) {
+                verybrightGeometry.vertices.push(star.vertex);
+                verybrightColors.push(star.color());
+                verybrightAttributes.push(star.attribute);
+            }
         }
 
         // The colors array must be a sibling of the vertices.
+        verydimGeometry.colors = verydimColors;
         dimGeometry.colors = dimColors;
         mediumGeometry.colors = mediumColors;
         brightGeometry.colors = brightColors;
+        verybrightGeometry.colors = verybrightColors;
         
         // Attach the attributes.  This is not recommended practice.  Perhaps
-        // better is to user THREE.BufferGeometry.  But that gets quite
+        // better is to use THREE.BufferGeometry.  But that gets quite
         // involved.
+        verydimGeometry.custAttributes = verydimAttributes;
         dimGeometry.custAttributes = dimAttributes;
         mediumGeometry.custAttributes = mediumAttributes;
         brightGeometry.custAttributes = brightAttributes;
-        
+        verybrightGeometry.custAttributes = verybrightAttributes;
+
         brightGeometry.computeBoundingSphere();
    
         // Update the particle system to sort the particles, which enables the
         // behavior we want.
         markedStars.sortParticles = true;
         lifeStars.sortParticles = true;
+        habitableStars.sortParticles = true;
+        verydimStars.sortParticles = true;
         dimStars.sortParticles = true;
         mediumStars.sortParticles = true;
         brightStars.sortParticles = true;
+        verybrightStars.sortParticles = true;
 
+        scene.add(verydimStars);
         scene.add(dimStars);
         scene.add(mediumStars);
         scene.add(brightStars);
+        scene.add(verybrightStars);
         scene.add(markedStars);
         scene.add(lifeStars);
+        scene.add(habitableStars);
 
     } else {
 
@@ -411,6 +454,16 @@ var MaterialManager = function() {
      * vertexColors set to THREE.VertexColors, so that the color of the image
      * is set individually by star.
      */
+    // Very dim stars.
+    this.materialVeryDim = new THREE.PointsMaterial({
+      size: 3,
+      sizeAttenuation: SIZE_ATTENUATION,
+      map: mapStar,
+      blending: THREE.AdditiveBlending,
+      transparent: TRANSPARENT,
+      vertexColors: THREE.VertexColors
+    });
+    
     // Dim stars.
     this.materialDim = new THREE.PointsMaterial({
       size: 4,
@@ -423,7 +476,7 @@ var MaterialManager = function() {
     
     // Medium-bright stars.
     this.materialMedium = new THREE.PointsMaterial({
-      size: 10,
+      size: 5,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapStar,
       blending: THREE.AdditiveBlending,
@@ -433,7 +486,17 @@ var MaterialManager = function() {
     
     // Bright stars.
     this.materialBright = new THREE.PointsMaterial({
-      size: 16,
+      size: 6,
+      sizeAttenuation: SIZE_ATTENUATION,
+      map: mapStar,
+      blending: THREE.AdditiveBlending,
+      transparent: TRANSPARENT,
+      vertexColors: THREE.VertexColors
+    });
+
+    // Very bright stars.
+    this.materialVeryBright = new THREE.PointsMaterial({
+      size: 8,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapStar,
       blending: THREE.AdditiveBlending,
@@ -447,7 +510,7 @@ var MaterialManager = function() {
      */
     // A ring for marking stars.
     this.materialRingMark = new THREE.PointsMaterial({
-      size: 6,
+      size: 12,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0xff0000,
@@ -457,13 +520,24 @@ var MaterialManager = function() {
     });
 
     // A ring for marking the sun, and any stars with a planet known to
-    // harbor life.  The opacity for this ring is lower than for the marking
-    // ring.  That's because the life ring is green, which is very bright.
+    // harbor life.
     this.materialRingLife = new THREE.PointsMaterial({
-      size: 6,
+      size: 12,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0x00ff00,
+      blending: THREE.AdditiveBlending,
+      transparent: TRANSPARENT,
+      opacity: 1.0
+    });
+
+    // A ring for marking the stars that have confirmed exoplanets in the
+    // habitable zone.  The color is blue.
+    this.materialRingHabitable = new THREE.PointsMaterial({
+      size: 12,
+      sizeAttenuation: SIZE_ATTENUATION,
+      map: mapRing,
+      color: 0x6b96ff,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
       opacity: 1.0
@@ -475,8 +549,8 @@ var MaterialManager = function() {
       * manipulate pixels with canvas methods.
       */
     this.CANVAS_STAR_MAP = new THREE.TextureLoader().load(STAR_IMG);
-    this.CANVAS_RED_RING_MAP = new THREE.TextureLoader().load("/wp-content/plugins/orion/images/ring-red.png");
-    this.CANVAS_GREEN_RING_MAP = new THREE.TextureLoader().load("/wp-content/plugins/orion/images/ring-green.png");
+    this.CANVAS_RED_RING_MAP = new THREE.TextureLoader().load(MARK_RING_RED);
+    this.CANVAS_GREEN_RING_MAP = new THREE.TextureLoader().load(MARK_RING_GREEN);
 
     // Stars (canvas renderer)
     this.program = function ( context ) {
@@ -505,9 +579,11 @@ MaterialManager.prototype.material = function(starClass) {
 
     /**
       * The starClass will be one of these constants:
+      *   VERYDIM_STAR
       *   DIM_STAR
       *   MEDIUM_STAR
       *   BRIGHT_STAR
+      *   VERYBRIGHT_STAR
       *   MARK_RING
       *   LIFE_RING
       */
@@ -515,6 +591,9 @@ MaterialManager.prototype.material = function(starClass) {
 
         // If WEBGL, then stars can be dim, medium or bright.
         switch(starClass) {
+        case VERYDIM_STAR:
+            return this.materialVeryDim;
+            break;
         case DIM_STAR:
             return this.materialDim;
             break;
@@ -524,20 +603,28 @@ MaterialManager.prototype.material = function(starClass) {
         case BRIGHT_STAR:
             return this.materialBright;
             break;
+       case VERYBRIGHT_STAR:
+           return this.materialVeryBright;
+            break;
         case MARK_RING:
             return this.materialRingMark;
             break;
         case LIFE_RING:
             return this.materialRingLife;
             break;
+        case HABITABLE_RING:
+            return this.materialRingHabitable;
+            break;
         }
     } else {
 
         // if CANVAS, there is only one star material.
         switch(starClass) {
+        case VERYDIM_STAR:
         case DIM_STAR:
         case MEDIUM_STAR:
         case BRIGHT_STAR:
+        case VERYBRIGHT_STAR:
             // For the star, the material must be cloned for each star
             // to have it's own color.  Otherwise, all stars are the color
             // of the last star.
@@ -563,7 +650,7 @@ function addStars(stars, mapData) {
 
     stars.forEach(function(d) {
 
-        var star = new Star(d.position, d.magnitude, d.spectrum, d.attribute, d.tagged);
+        var star = new Star(d.position, d.magnitude, d.spectrum, d.temperature, d.luminosity, d.attribute, d.tagged, false, d.habitable);
         scenes.addStar(star, mapData);
     });
     scenes.renderStars(mapData);
@@ -577,7 +664,7 @@ function addStars(stars, mapData) {
  */
 function addSun(mapData)
 {
-    var sun = new Star({u: 0, v: 0, w: 0}, 4.83, "G", "Sun", false, true);
+    var sun = new Star({u: 0, v: 0, w: 0}, 4.83, "G", 5778.0, Math.NaN, "Sun", false, true, false);
     scenes.addStar(sun, mapData);
 //    scenes.renderStars(mapData);
 }
@@ -632,6 +719,9 @@ var CoordinateGrid = function(scale) {
             this.lines.push(yline);
         }
     }
+    
+    //The grid spacing for the message line.
+    this.gridSpacing = scale/10;
 };
 
 CoordinateGrid.prototype.joinScene = function(scene) {
@@ -643,20 +733,129 @@ CoordinateGrid.prototype.joinScene = function(scene) {
 
 
 /**
+ * CoordinateCylidricalGrid
+ *
+ */
+var CylindricalGrid = function(scale) {
+
+    const R_0 = 25900;
+    const radius = 60000;
+    //const radials = 16;
+    //var circles = 8;
+    const divisions = 32;
+    var color1 = new THREE.Color(0xffff99);
+    var color2 = new THREE.Color(0x99ffff);
+
+    var vertices = [];
+    var colors = [];
+
+    var xi, yi, xo, yo, x, y, z;
+    var v, i, j, r;
+    
+    // The angular width relates to scale as sin(theta_max) = scale/R_0, where
+    // R_0 is the distance to the center of the galaxy.
+    //
+    // If the scale is greater that R_0, then as a temporary measure, limit it
+    // to 80% or R_0.
+    var theta_max;
+    if (scale < R_0) {
+        theta_max = Math.atan(scale/(R_0 - scale));
+    }
+    else {
+        theta_max = Math.atan(scale/0.2);
+    }
+
+    for (k = -1; k <= 1; k++) {
+
+        // Create the radials.
+        for (i = -10; i <= 10; i ++) {
+            v = (i/10)*(theta_max);
+            xi = R_0 - Math.cos(v)*(R_0 - scale);
+            yi = -Math.sin(v)*(R_0 - scale);
+            xo = R_0 - Math.cos(v)*(R_0 + scale);
+            yo = -Math.sin(v)*(R_0 + scale);
+
+            vertices.push(xi, yi, k*scale/10);
+            vertices.push(xo, yo, k*scale/10);
+
+            colors.push(color1.r, color1.g, color1.b);
+            colors.push(color1.r, color1.g, color1.b);
+        }
+
+        // Create the circles.
+        for (i = 0; i <= 20; i ++) {
+            r = R_0 + scale - (2*scale/20)*i;
+
+            for (j = 0; j < divisions; j ++) {
+
+                // First vertex.
+                v = (2*theta_max/divisions)*j - theta_max;
+                x = R_0 - Math.cos(v)*r;
+                y = -Math.sin(v)*r;
+
+                vertices.push(x, y, k*scale/10);
+                colors.push(color2.r, color2.g, color2.b);
+
+                // Second vertex
+                v = (2*theta_max/divisions)*(j + 1) - theta_max;
+                x = R_0 - Math.cos(v)*r;
+                y = -Math.sin(v)*r;
+
+                vertices.push(x, y, k*scale/10);
+                colors.push(color2.r, color2.g, color2.b);
+            }
+        }
+    }
+
+    var geometry = new THREE.BufferGeometry();
+    geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+
+    var material = new THREE.LineBasicMaterial({
+        vertexColors: THREE.VertexColors,
+        transparent: true,
+        opacity: 0.3
+    });
+
+    THREE.LineSegments.call( this, geometry, material );
+    
+    // The grid spacing for the message line.
+    this.gridSpacing = scale/10;
+}
+
+CylindricalGrid.prototype = Object.create( THREE.LineSegments.prototype );
+CylindricalGrid.prototype.constructor = CylindricalGrid;
+
+CylindricalGrid.prototype.joinScene = function(scene) {
+
+    scene.add(this);
+}
+
+
+/**
   * StarClass
   *
   */
-var StarClass = function(magnitude, marked = false, life = false) {
+var StarClass = function(magnitude, marked = false, life = false, habitable = false) {
 
-    if (magnitude < -1.69) {
+    if (magnitude < 0.0) {
+        this.class = VERYBRIGHT_STAR;
+    }
+    else if (magnitude < 1.0) {
         this.class = BRIGHT_STAR;
-    } else if (magnitude < 3.02) {
+    }
+    else if (magnitude < 2.0) {
         this.class = MEDIUM_STAR;
-    } else {
+    }
+    else if (magnitude < 3.0) {
         this.class = DIM_STAR;
+    }
+    else {
+        this.class = VERYDIM_STAR;
     }
     this.marked = marked;
     this.life = life;
+    this.habitable = habitable;
 };
 
 
@@ -664,42 +863,95 @@ var StarClass = function(magnitude, marked = false, life = false) {
  * Star
  *
  */
-var Star = function(position, magnitude, spectrum, attr, marked = false, life = false) {
+var Star = function(position, magnitude, spectrum, temperature, luminosity, attr, marked = false, life = false, habitable = false) {
 
+    // The subjective color scheme for the colors of stars is closer to what
+    // one expects to see.
+    this.colorScheme = STARCOLORS_SUBJECTIVE;
+    
     this.vertex = new THREE.Vector3(position.u, position.v, position.w);
-    this.starClass = new StarClass(magnitude, marked, life);
+    this.starClass = new StarClass(magnitude, marked, life, habitable);
 
+    this.temperature = temperature;
+    this.luminocity = luminosity;
     this.magnitude = magnitude;
     this.spectrum = spectrum;
     this.attribute = attr;
 };
 
+Star.prototype.spectralClass = function() {
+    
+    if (this.spectrum !== undefined) {
+        return this.spectrum;
+    }
+    if (this.temperature === undefined) {
+        return "";
+    }
+    else {
+        if (this.temperature > 25000.0) {
+            return "O";
+        }
+        if (this.temperature > 10000.0) {
+            return "B";
+        }
+        if (this.temperature > 7500.0) {
+            return "A";
+        }
+        if (this.temperature > 6000.0) {
+            return "F";
+        }
+        if (this.temperature > 5000.0) {
+            return "G";
+        }
+        if (this.temperature > 3500.0) {
+            return "K";
+        }
+        if (this.temperature <= 3500.0) {
+            return "M";
+        }
+    }
+};
+
 Star.prototype.color = function() {
 
     var color = new THREE.Color();
+    var spectralClass = this.spectralClass();
+    color.set(this.colorScheme.color(spectralClass));
+    var hslColor = new THREE.Color();
+    color.getHSL(hslColor);
+    var hue = hslColor.h;
 
-    switch(this.spectrum) {
-    case "M": // Red
-        color.set(0xffcf95);
-        break;
-    case "K": // Orange
-        color.set(0xffaed5);
-        break;
-    case "G": // Yellow
-        color.set(0xfff3ea);
-        break;
-    case "F": // Green
-        color.set(0xf7f5ff);
-        break;
-    case "A": // Blue-white
-        color.set(0xd1dbff);
-        break;
-    case "B": // Blue
-        color.set(0xa7bcff);
-        break;
-    default: // White
-        color.set(0xffffff);
+
+    // Adjust the saturation and value based on the brightness of the star.
+    // Very dim stars are grey (#999999).  The saturation is 0 and the value
+    // is 0.80.
+    if (this.starClass.class === VERYDIM_STAR) {
+        color.set(0x999999);
+        return color;
     }
+    
+    // Dim stars and medium stars are intermediate.  The saturation is 2 and
+    // the value is 0.90.
+    if (this.starClass.class === DIM_STAR) {
+        color.setHSL(hue, 0.04, 0.80);
+        return color;
+    }
+    if (this.starClass.class === MEDIUM_STAR) {
+        color.setHSL(hue, 0.04, 0.80);
+        return color;
+    }
+    
+    // The bright stars has saturation of 4, so that a little of the color is
+    // percievable.  The magnitude is 100%.
+    if (this.starClass.class === BRIGHT_STAR) {
+        color.setHSL(hue, 0.99, 0.99);
+        return color;
+    }
+    if (this.starClass.class === VERYBRIGHT_STAR) {
+        color.setHSL(hue, 0.99, 0.98);
+        return color;
+    }
+
     return color;
 };
 
@@ -740,6 +992,10 @@ function launchVR(buttonType, currentScene) {
         w = y/2;
         h = x;
     }
+    
+    // This is usefull for testing in a desktop browser.
+    //w = 400;
+    //h = 400;
 
     // For the stereo effect, the aspect is for each side.
     var aspect = w/h;
@@ -754,29 +1010,56 @@ function launchVR(buttonType, currentScene) {
     // This makes the device orientation controls active.
     controls.connect();
     
-    // Look at the Sun (or the origin).
-    var origin = new THREE.Vector3(0, 0, 0);
-    currentScene.camera.lookat(origin);
+//    // Look at the Sun (or the origin).
+//    var origin = new THREE.Vector3(0, 0, 0);
+//    currentScene.camera.lookat(origin);
 }
 
 function setAnaglyph(buttonType, currentScene) {
-    if (WEBGL !== rendererWrapper.engine) {
-        var msg = "Attempt to set effect to anaglyph ignored.";
-        msg = msg + " WebGL renderer is not in use.";
-        console.warn(msg);
-        return;
-    }
-    currentScene.effect = 'anaglyph';
-    renderOnce(currentScene);
+    var msg = "Anaglyph effect disabled."
+    console.warn(msg);
+    return;
+    //if (WEBGL !== rendererWrapper.engine) {
+    //    var msg = "Attempt to set effect to anaglyph ignored.";
+    //    msg = msg + " WebGL renderer is not in use.";
+    //    console.warn(msg);
+    //    return;
+    //}
+    //currentScene.effect = 'anaglyph';
+    //renderOnce(currentScene);
 }
 function unsetAnaglyph(buttonType, currentScene) {
+    var msg = "Anaglyph effect disabled."
+    console.warn(msg);
+    return;
+    //if (WEBGL !== rendererWrapper.engine) {
+    //    var msg = "Attempt to reset effect from anaglyph ignored.";
+    //    msg = msg + " WebGL renderer is not in use.";
+    //    console.warn(msg);
+    //    return;
+    //}
+    //currentScene.effect = 'none';
+    //renderOnce(currentScene);
+}
+
+function playMovie(buttonType, currentScene) {
     if (WEBGL !== rendererWrapper.engine) {
-        var msg = "Attempt to reset effect from anaglyph ignored.";
+        var msg = "Attempt to start playing movie animation ignored.";
         msg = msg + " WebGL renderer is not in use.";
         console.warn(msg);
         return;
     }
-    currentScene.effect = 'none';
+    currentScene.animation = 'movie';
+    renderOnce(currentScene);
+}
+function pauseMovie(buttonType, currentScene) {
+    if (WEBGL !== rendererWrapper.engine) {
+        var msg = "Attempt to stop playing movie animation ignored.";
+        msg = msg + " WebGL renderer is not in use.";
+        console.warn(msg);
+        return;
+    }
+    currentScene.animation = 'animate';
     renderOnce(currentScene);
 }
 
@@ -802,9 +1085,10 @@ var MapMessageLine = function(mapParameters) {
     this.waitingMsg = "";
     this.stars = "";
     
-    // The VR and 3D (anaglyph) buttons.
+    // The VR and movie play buttons.
     this.buttonVR = new Button("vr", "icon-cardboard", this.canvasID, launchVR, launchVR);
     this.button3D = new Button("3d", "icon-glasses", this.canvasID, setAnaglyph, unsetAnaglyph);
+    this.buttonMV = new Button("mv", "icon-play", this.canvasID, playMovie, pauseMovie)
     
     this.renderer = "---";
     this.scale = "---";
@@ -826,10 +1110,13 @@ MapMessageLine.prototype.getButtonByType = function(type) {
         case "3d":
             return this.button3D;
             break;
+        case "mv":
+            return this.buttonMV;
+            break;
     }
 }
 
-MapMessageLine.prototype.init = function (engine) {
+MapMessageLine.prototype.init = function (engine, grid) {
     
     // These are both known at the time the DOM element that holds the scene is
     // initialized.
@@ -838,7 +1125,8 @@ MapMessageLine.prototype.init = function (engine) {
     } else {
         this.renderer = "Canvas";
     }
-    var sp = Math.round(this.mapParameters.scale/5);
+    this.grid = grid;
+    var sp = this.grid.gridSpacing;
     
     // The scale and grid spacing needs to consider the width of the star map.
     // So there are three size ranges:
@@ -982,7 +1270,7 @@ MapMessageLine.prototype.update = function() {
             html = "<table class='starMapMsg' width='100%'><tr>"
                     + "<td style='width: 60px;'>";
             if ('WebGL' === this.renderer) {
-                    html = html + this.buttonVR.html + this.button3D.html;
+                    html = html + this.buttonVR.html() + this.button3D.html(false) + this.buttonMV.html();
             } else {
                     html = html + this.renderer;
             }
@@ -1061,12 +1349,24 @@ var Button = function(type, icon, canvasId, forwardAction, reverseAction) {
     this.id = type + "_" + canvasId;
     this.enabled = false;
     this.active = false;
+};
+
+Button.prototype.html = function(enabled = true) {
     
-    this.html = "<svg class='svgicon'"
+    var svgclass;
+    if (enabled) {
+        svgclass = 'svgicon';
+    }
+    else {
+        svgclass = 'svgiconDisabled';
+    }
+    
+    var html = "<svg class='" + svgclass + "'"
         + " id='" + this.id + "'"
         + " viewBox='0 0 100 100' width='2em'"
         + " onClick='buttonAction(&apos;" + this.type + "&apos;, &apos;" + this.canvasId + "&apos;)'>"
         + "<use xlink:href='#" + this.icon + "'></use></svg>";    
+    return html;
 }
 
 /**
