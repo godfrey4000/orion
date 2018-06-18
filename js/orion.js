@@ -230,11 +230,18 @@ function init(sceneP)
     var currentScene = scenes.currentScene(sceneP.canvasID);
     var scene = currentScene.scene;
     var msgHandler = currentScene.msgHandler;
+
+    // THIS IS VERY STRANGE
+    // When building the cylindrical coordinate grid java script sometimes
+    // adds 25900 + "125" and returns 26025 as an integer, and sometimes
+    // adds 25900 + "125" and returns 25900125 AS AN INTEGER!
+    //      Safer to make scale an integer from the start.
+    var scale = parseInt(sceneP.scale);
     
     // This is the conversion inches to light years.  See comments at the top
     // of this file.  Half the screen width in inches equals the scale in
     // light years.
-    STD_SCALE = 2*sceneP.scale/SCREEN_WIDTH;
+    STD_SCALE = 2*scale/SCREEN_WIDTH;
 
     camera = new THREE.PerspectiveCamera(
             CAMERA_FOV,
@@ -296,9 +303,9 @@ function init(sceneP)
     controls = new THREE.DeviceOrientationControls( camera );
     controls.disconnect();
 
-    //var grid = new CoordinateGrid(sceneP.scale);
+    //var grid = new CoordinateGrid(scale);
     // grid.joinScene(scene);
-    var grid = new CylindricalGrid(sceneP.scale);
+    var grid = new CylindricalGrid(scale);
     grid.joinScene(scene);
 
     // Save the scene.

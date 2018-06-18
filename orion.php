@@ -36,12 +36,13 @@ function orion_build_scene_div( $atts )
 	// library.
 	$jsonParams = json_encode($atts);
 
-        // Include the two svg icons for the cardboard viewer and the
-        // 3D glasses.
+        // Include the three svg icons for the cardboard viewer, the
+	// 3D glasses and the movie play icon.
 	$svgCardboard = file_get_contents(dirname( __FILE__) . '/images/cardboard.svg');
 	$svgGlasses = file_get_contents(dirname(__FILE__) . '/images/glasses3d.svg');
+	$svgPlay = file_get_contents(dirname(__FILE__) . '/images/play.svg');
 
-	$html = $svgCardboard . $svgGlasses
+	$html = $svgCardboard . $svgGlasses . $svgPlay
                         . '<div class="starMap" id="' . $id . '"'
 			. ' style="width: ' . $w . 'px;'
 			. ' height: ' . $h. 'px;"'
@@ -69,10 +70,11 @@ function orion_enqueue_scripts()
 	wp_register_script( 'Projector_js', plugin_dir_url(__FILE__) . 'js/Projector.js');
 	wp_register_script( 'Canvas_js', plugin_dir_url(__FILE__) . 'js/CanvasRenderer.js');
 	wp_register_script( 'Stereo_js', plugin_dir_url(__FILE__) . 'js/StereoEffect.js');
-	wp_register_script( 'Anaglyph_js', plugin_dir_url(__FILE__) . 'js/AnaglyphEffect.js');
+//	wp_register_script( 'Anaglyph_js', plugin_dir_url(__FILE__) . 'js/AnaglyphEffect.js');
 	wp_register_script( 'OrbitControls_js', plugin_dir_url(__FILE__) . 'js/OrbitControls.js');
 	wp_register_script( 'OrientControls_js', plugin_dir_url(__FILE__) . 'js/DeviceOrientationControls.js');
         wp_register_script( 'astro_js', plugin_dir_url(__FILE__) . 'js/astro.js');
+        wp_register_script( 'starcolor_js', plugin_dir_url(__FILE__) . 'js/starcolor.js');
 	wp_register_script( 'utils_js', plugin_dir_url(__FILE__) . 'js/utils.js');
 	wp_register_script( 'orion_js', plugin_dir_url(__FILE__) . 'js/orion.js');
         
@@ -87,6 +89,7 @@ function orion_enqueue_scripts()
 	wp_enqueue_script('Detector_js');
 	wp_enqueue_script('OrbitControls_js');
 	wp_enqueue_script('OrientControls_js');
+        wp_enqueue_script('starcolor_js');
         wp_enqueue_script('astro_js');
 	wp_enqueue_script('utils_js');
 	wp_enqueue_script('orion_js');
@@ -131,28 +134,19 @@ function orion_shortcode( $atts, $content = '' )
 		$mapParams['sun'] = false;
 	}
 
-	// If the position of the camera is not specified, then place
-	// it on the z-axis, above the galactic plane,  The distance
-	// above the the galactic plane is
-	//
-	//  z = 1.2*scale/tan(45/2 deg)
+	// If the position of the camera is not specified, then the js
+	// will it on the z-axis, above the galactic plane.
 	//
 	// The position attribute is not required, and it cannot have
 	// a constant default value.  So the function shortcode_atts()
 	// won't copy it to the result array.
-	if( empty($atts['position']) ) {
-		$x = 0;
-		$y = 0;
-		$z = 1.2*floatval( $a['scale'] )/0.414;
-	}
-	else {
+	if( !empty($atts['position']) ) {
 		$x = floatval( explode( ',', $atts['position'] )[0] );
 		$y = floatval( explode( ',', $atts['position'] )[1] );
 		$z = floatval( explode( ',', $atts['position'] )[2] );
+		$mapParams['position'] = [$x, $y, $z];
 	}
-	$mapParams['position'] = [$x, $y, $z];
 
-	
         if( empty($atts['service']) ) {
             // In this instance we must have a source.  (For now.  Perhaps a
             // basic star field, like all the stars within 100 light years.)

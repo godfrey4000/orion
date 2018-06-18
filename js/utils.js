@@ -22,12 +22,12 @@ const LIFE_RING = 6;
 const HABITABLE_RING = 7;
 
 // Images
-const STAR_IMG = 'images/disc.png';
-const RING_IMG = 'images/ring.png';
-const MARK_RING_RED = 'images/ring-red.png';
-const MARK_RING_GREEN = 'images/ring-green.png';
-const CARDBOARD_IMG = 'images/cardboard2.svg';
-const GLASSES3D_IMG = 'images/glasses2.svg';
+const STAR_IMG = '/wp-content/plugins/orion/images/disc.png';
+const RING_IMG = '/wp-content/plugins/orion/images/ring.png';
+const MARK_RING_RED = '/wp-content/plugins/orion/images/ring-red.png';
+const MARK_RING_GREEN = '/wp-content/plugins/orion/images/ring-green.png';
+const CARDBOARD_IMG = '/wp-content/plugins/orion/images/cardboard2.svg';
+const GLASSES3D_IMG = '/wp-content/plugins/orion/images/glasses2.svg';
 
 // Render engines
 const CANVAS = 0;
@@ -740,8 +740,6 @@ var CylindricalGrid = function(scale) {
 
     const R_0 = 25900;
     const radius = 60000;
-    //const radials = 16;
-    //var circles = 8;
     const divisions = 32;
     var color1 = new THREE.Color(0xffff99);
     var color2 = new THREE.Color(0x99ffff);
@@ -1268,7 +1266,7 @@ MapMessageLine.prototype.update = function() {
             break;
         case MSG_NORMAL:
             html = "<table class='starMapMsg' width='100%'><tr>"
-                    + "<td style='width: 60px;'>";
+                    + "<td style='width: 70px;'>";
             if ('WebGL' === this.renderer) {
                     html = html + this.buttonVR.html() + this.button3D.html(false) + this.buttonMV.html();
             } else {
