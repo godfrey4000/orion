@@ -255,8 +255,7 @@ function init(sceneP)
     if (sceneP.position !== undefined) {
         // The camera is placed at the specified position, pointing at the sun,
         // which is located at the origin.
-        var p = JSON.parse(sceneP.position);
-        position = new THREE.Vector3(p.x, p.y, p.z);
+        position = new THREE.Vector3().fromArray(sceneP.position);
         camera.position.copy(position);
         camera.lookAt(origin);
         
