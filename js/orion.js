@@ -1,19 +1,16 @@
 /*
-** Parameters passed from WordPress Orion plugin to the sceneData
-** object.  These paramaters are set as properties of the [orion]
-** shortcode.
+** Parameters passed from WordPress Orion plugin to the sceneData object.
+** These paramaters are set as properties of the [orion] shortcode.
 **
-**   scale            -- This is the distance from the center
-**                    -- to the edge, measured in light years.
+**   scale            -- This is the distance from the center to the edge,
+**                    -- measured in light years.
 **                    (default 100)
 **   width            (default 400)
 **   height           (default 400)
-**   position         -- The camera always looks at the origin.
-**                    -- This direction of sight is the negative
-**                    -- of this vector.
-**                    (default
-**                       z = 1.2*SCALE/tan(22.5 deg)
-**                       x,y = 0)
+**   position         -- The camera always looks at the origin.  This direction
+**                    -- of sight is the negative of this vector.  It is a json
+**                    -- string of the form position="x, y, z".
+**                    (default: 0, 0, STD_SCALE*OBSERVER_DISTANCE)
 **    source          -- The collection of stars to display.
 **    sun             -- If true, the Sun is displayed at the origin.
 **                    (default true)
@@ -58,7 +55,7 @@ var CAMERA_DISTANCE; // Initial distance of the camera, in light years.
 // The camera advances by this many lightyears per frame in movie mode.  These
 // values are set in init().
 var MOVIE_STEP;
-var MOVIE_DIRECTION;
+//var MOVIE_DIRECTION;
 
 var container, controls, orbitControls;
 
@@ -241,7 +238,8 @@ function init(sceneP)
     // This is the conversion inches to light years.  See comments at the top
     // of this file.  Half the screen width in inches equals the scale in
     // light years.
-    STD_SCALE = 2*scale/SCREEN_WIDTH;
+    //STD_SCALE = 2*scale/SCREEN_WIDTH;
+    STD_SCALE = scale/SCENE_RADIUS;
 
     camera = new THREE.PerspectiveCamera(
             CAMERA_FOV,
@@ -257,9 +255,9 @@ function init(sceneP)
     if (sceneP.position !== undefined) {
         // The camera is placed at the specified position, pointing at the sun,
         // which is located at the origin.
-        position = sceneP.position
-        var p = new THREE.Vector3(position[0], position[1], position[2]);
-        camera.position.copy(p);
+        var p = JSON.parse(sceneP.position);
+        position = new THREE.Vector3(p.x, p.y, p.z);
+        camera.position.copy(position);
         camera.lookAt(origin);
         
         // Rotate the camer so the galactic plane.
@@ -276,9 +274,9 @@ function init(sceneP)
     // The movie step is based on 16 frames per second for a five-minute pass
     // from PERSPECT*scale to the opposite PERSPECT*scale.
     MOVIE_STEP = (2*STD_SCALE*OBSERVER_DISTANCE)/(5*60*16);
-    MOVIE_DIRECTION = camera.position.clone();
-    MOVIE_DIRECTION.normalize();
-    MOVIE_DIRECTION.multiplyScalar(-1*MOVIE_STEP);
+    var movieDirection = camera.position.clone();
+    movieDirection.normalize();
+    movieDirection.multiplyScalar(-1*MOVIE_STEP);
 
     var renderer = rendererWrapper.newRenderer();
     renderer.setSize(sceneP.width, sceneP.height);
@@ -310,6 +308,7 @@ function init(sceneP)
 
     // Save the scene.
     currentScene.camera = camera;
+    currentScene.movieDirection = movieDirection;
     currentScene.grid = grid;
     currentScene.renderer = renderer;
     currentScene.stereoEffect = stereoEffect;
@@ -386,7 +385,7 @@ function animate()
     //    }
 
         // Move the camera one MOVIE_STEP.
-        p = p.add(MOVIE_DIRECTION);
+        p = p.add(currentScene.movieDirection);
         camera.position.copy(p);
     }
     

@@ -22,12 +22,12 @@ const LIFE_RING = 6;
 const HABITABLE_RING = 7;
 
 // Images
-const STAR_IMG = '/wp-content/plugins/orion/images/disc.png';
-const RING_IMG = '/wp-content/plugins/orion/images/ring.png';
-const MARK_RING_RED = '/wp-content/plugins/orion/images/ring-red.png';
-const MARK_RING_GREEN = '/wp-content/plugins/orion/images/ring-green.png';
-const CARDBOARD_IMG = '/wp-content/plugins/orion/images/cardboard2.svg';
-const GLASSES3D_IMG = '/wp-content/plugins/orion/images/glasses2.svg';
+const STAR_IMG = 'images/disc.png';
+const RING_IMG = 'images/ring.png';
+const MARK_RING_RED = 'images/ring-red.png';
+const MARK_RING_GREEN = 'images/ring-green.png';
+const CARDBOARD_IMG = 'images/cardboard2.svg';
+const GLASSES3D_IMG = 'images/glasses2.svg';
 
 // Render engines
 const CANVAS = 0;
@@ -1048,6 +1048,13 @@ function playMovie(buttonType, currentScene) {
         return;
     }
     currentScene.animation = 'movie';
+    
+    // Calculate the unit vector that points in the direction the camera is
+    // looking.
+    var p = currentScene.camera.position.clone();
+    p.normalize();
+    p.multiplyScalar(-1*MOVIE_STEP);
+    currentScene.movieDirection = p;
     renderOnce(currentScene);
 }
 function pauseMovie(buttonType, currentScene) {
