@@ -17,7 +17,8 @@ var dotp = function(u, v) {
 };
 
 var toGal = function(eq, dnorm) {
-    var galData = [];
+
+	var galData = [];
     eq.forEach( function(d,i) {
         
         // The CSV from services like VizieR sometimes include records with

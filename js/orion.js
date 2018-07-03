@@ -2,8 +2,8 @@
 ** Parameters passed from WordPress Orion plugin to the sceneData object.
 ** These paramaters are set as properties of the [orion] shortcode.
 **
-**   scale            -- This is the distance from the center to the edge,
-**                    -- measured in light years.
+**   scale            -- This is the distance from the center to the edge of
+**                    -- the grid, measured in light years.
 **                    (default 100)
 **   width            (default 400)
 **   height           (default 400)
@@ -18,28 +18,31 @@
 
 // THREE constants.
 const THREE_POINTS = "Points";
+const INCHES_TO_METERS = 0.0254;
 
 // SCENE GEOMETRY CONSTANTS
 // 
 // The scene is intended to fit on top of a large dining room table, to give
 // the viewer a satisfying 3D perspective.  The viewer, when the scene is
-// initiall rendered, is 60 inches from the center of the scene, and the scene
+// initial rendered, is 60 inches from the center of the scene, and the scene
 // fits inside a sphere of radius 36 inches.
 // 
 // Units:
-// The units for setting the constants prescribing the camera charactristics
-// are in inches.  These are the constants just below.  The application,
-// however is in light years, and so a scale to map inches to light years is
-// calculated from the scale parameter passed to this probram.
-//
-// The scale parameter is the distance from the center of the scene to the
+// The units for setting the constants prescribing the camera characteristics
+// are in inches.  These are the constants just below.  The unit of the WebVR
+// is meters.  This is why the constants are written first in inches and then
+// immediately converted to meters.
+//      The data from star catalogs typically gives distances in kilo-parsecs.
+// The routines in astro.js then convert them to light-years.  To display the
+// intended collection of stars just above the dining root table, a scale must
+// be introduced that converts light-years to inches (and then to meters).
+//      The scale parameter is the distance from the center of the scene to the
 // edge, in light years.  This establishes the conversion factor.  (See comment
 // below.)
-const SCENE_RADIUS = 36;
-const OBSERVER_DISTANCE = 60;
-const CAMERA_NEAR = 2;
-const CAMERA_FAR = 360; // 30 feet
-const EYE_SEPARATION = 3;
+const SCENE_RADIUS = 24*36*INCHES_TO_METERS;
+const OBSERVER_DISTANCE = 24*60*INCHES_TO_METERS;
+const CAMERA_NEAR = 24*0.5*INCHES_TO_METERS;
+const CAMERA_FAR = 24*1080*INCHES_TO_METERS; // 90 feet
 
 const PERSPECT = OBSERVER_DISTANCE/SCENE_RADIUS;
 const CAMERA_FOV = 2*180/Math.PI*Math.asin(SCENE_RADIUS/OBSERVER_DISTANCE);
@@ -52,7 +55,7 @@ const SCREEN_WIDTH = 2*OBSERVER_DISTANCE*Math.tan(Math.PI/360*CAMERA_FOV);
 var STD_SCALE;
 var CAMERA_DISTANCE; // Initial distance of the camera, in light years.
 
-// The camera advances by this many lightyears per frame in movie mode.  These
+// The camera advances by this many light years per frame in movie mode.  These
 // values are set in init().
 var MOVIE_STEP;
 //var MOVIE_DIRECTION;
@@ -126,11 +129,12 @@ for (var i = 0; i < starMaps.length; i++) {
 // Make the star maps interactive and start the animate loop.  Doing it here
 // should call the loop only once (I think).
 // scenes.doWithAll(renderOnce);
-scenes.makeInteractive(onMouseMove, onMouseOver, onMouseOut);
+//scenes.makeInteractive(onMouseMove, onMouseOver, onMouseOut);
 jQuery('document').ready( function() {
     scenes.doWithAll(renderOnce);
 });
-animate();
+//animate();
+animate_vr();
 
 
 /*
@@ -183,7 +187,8 @@ function draw(mapData)
             msgHandler.setError(errMsg);
         });
         
-    } else {
+    }
+    else {
 
         msgHandler.info("Loading star data...");
         d3.csv(mapData.source, function(obj, parsedData)
@@ -208,7 +213,7 @@ function consumeData(msg, mapData, csv) {
     
     var scene = scenes.currentScene(mapData.canvasID);
     try {
-        var starData = toGal(csv, 1);
+        var starData = toGal(csv, STD_SCALE);
         msg.setNumberStars(starData.length);
         addStars(starData, mapData);
         msg.reset();
@@ -232,86 +237,84 @@ function init(sceneP)
     // When building the cylindrical coordinate grid java script sometimes
     // adds 25900 + "125" and returns 26025 as an integer, and sometimes
     // adds 25900 + "125" and returns 25900125 AS AN INTEGER!
-    //      Safer to make scale an integer from the start.
+    // Safer to make scale an integer from the start.
     var scale = parseInt(sceneP.scale);
     
-    // This is the conversion inches to light years.  See comments at the top
-    // of this file.  Half the screen width in inches equals the scale in
-    // light years.
-    //STD_SCALE = 2*scale/SCREEN_WIDTH;
-    STD_SCALE = scale/SCENE_RADIUS;
+    // This is the conversion meters to light years.  See comments at the top
+    // of this file.
+    STD_SCALE = SCENE_RADIUS/scale;
 
-    camera = new THREE.PerspectiveCamera(
+    // The next section creates the camera and the spaceship.  The spaceship
+    // can move; the camera is firmly affixed to the spaceship's nose.  The
+    // spaceship is a dimensionless object, and as such, has no orientation.
+    // For this reason, the camera a spaceship are positioned by means of a
+    // translation instead of setting the position property.  The latter
+    // approach can introduce an unwanted rotation.
+    //
+    // The camera.
+    var camera = new THREE.PerspectiveCamera(
             CAMERA_FOV,
             sceneP.width/sceneP.height,
-            STD_SCALE*CAMERA_NEAR,
-            STD_SCALE*CAMERA_FAR);
-    scene.add(camera);
+            CAMERA_NEAR,
+            CAMERA_FAR);
+    
+    // The spaceship.
+    var spaceship = new THREE.Object3D();
     
     // Default initial position of the camera is a position on a line
     // perpendicular to the galactic plane, directly above the sun, at a
-    // distance so that the 11x11 grid is just entirely in view.
+    // distance so that the 20x20 grid is just entirely in view.
+    //      Both the spaceship and the camera must be positioned appropriately
+    // first.  Then they are combined and the two move susequently as a single
+    // unit.
     var origin = new THREE.Vector3();
     if (sceneP.position !== undefined) {
-        // The camera is placed at the specified position, pointing at the sun,
-        // which is located at the origin.
+    	
+        // The camera, and spaceship are placed at the specified position,
+    	// pointing at the sun, which is located at the origin.
         position = new THREE.Vector3().fromArray(sceneP.position);
-        camera.position.copy(position);
-        camera.lookAt(origin);
-        
-        // Rotate the camer so the galactic plane.
-        //var cameraRotation = new THREE.Euler(0, 0, 45.0*Math.PI/180.0, 'XYZ');
-        //var world = camera.matrixWorld;
-        //var proj = camera.projectionMatrix;
-        camera.up.set(0, 0, 1);
+        position.multiplyScalar(STD_SCALE);
+        spaceship.position.copy(position);
+        spaceship.up.set(0, 0, 1);
     }
     else {
-        camera.position.fromArray([0, 0, STD_SCALE*OBSERVER_DISTANCE]);
-        camera.lookAt(origin);
+    	spaceship.position.set(0, 0, OBSERVER_DISTANCE);
     }
+    camera.rotateY(Math.PI);
+    spaceship.add(camera);
+    scene.add(spaceship);
     
     // The movie step is based on 16 frames per second for a five-minute pass
     // from PERSPECT*scale to the opposite PERSPECT*scale.
-    MOVIE_STEP = (2*STD_SCALE*OBSERVER_DISTANCE)/(5*60*16);
-    var movieDirection = camera.position.clone();
+    MOVIE_STEP = (2*OBSERVER_DISTANCE)/(5*60*64);
+    var movieDirection = spaceship.position.clone();
     movieDirection.normalize();
     movieDirection.multiplyScalar(-1*MOVIE_STEP);
-
+    
+    // The renderer.
     var renderer = rendererWrapper.newRenderer();
+	renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize(sceneP.width, sceneP.height);
     container = document.getElementById(sceneP.canvasID);
     container.appendChild(renderer.domElement);
+    orbitControls = new THREE.OrbitControls( spaceship, renderer.domElement );
+    orbitControls.enableZoom;
+    
+    // The WebVR manager.
+    var webvr = new WebVRManager(renderer);
+    
 
-    // These effects are no longer supported in the Three.js project.  The
-    // code does not work properly and there's no documentation.  Posts on
-    // StackOverflow suggest that it's all been abandonded for VREffect and
-    // WebVR.
-    //      So for now, this is turned off.  At a later point, this will be
-    // replaced with VREffect.  However, to do that requres a headset and a
-    // WebVR enabled browser.
-    //      In this form, the stereo effect is just a straight view forward for
-    // both eyes, coupled to the device orientation controls.  There is no 3D.
-    // the anaglyph effect does not work at all.
-    var stereoEffect = new THREE.StereoEffect(renderer);
-    //var anaglyphEffect = new THREE.AnaglyphEffect(renderer, sceneP.width, sceneP.height);
-    stereoEffect.setEyeSeparation(STD_SCALE*EYE_SEPARATION);
-
-    orbitControls = new THREE.OrbitControls( camera, renderer.domElement );
-    controls = new THREE.DeviceOrientationControls( camera );
-    controls.disconnect();
-
-    //var grid = new CoordinateGrid(scale);
-    // grid.joinScene(scene);
+    // The blue and yellow coordinate grid.
     var grid = new CylindricalGrid(scale);
     grid.joinScene(scene);
 
     // Save the scene.
+    currentScene.spaceship = spaceship;
     currentScene.camera = camera;
     currentScene.movieDirection = movieDirection;
     currentScene.grid = grid;
     currentScene.renderer = renderer;
-    currentScene.stereoEffect = stereoEffect;
-    //currentScene.anaglyphEffect = anaglyphEffect;
+    currentScene.webvr = webvr;
     
     // Update the message line.
     msgHandler.init(rendererWrapper.engine, grid);
@@ -359,33 +362,41 @@ function onMouseOut(elem) {
     scenes.setCurrentScene();
 }
 
+function flipScene() {
+	var currentScene = scenes.currentScene();
+	var spaceship = currentScene.spaceship;
+	spaceship.rotateY(Math.PI);
+}
+
+function animate_vr()
+{
+	currentScene = scenes.currentScene();
+	currentScene.renderer.setAnimationLoop( animate );
+}
+
 function animate()
 {
-    requestAnimationFrame( animate );
+//    requestAnimationFrame( animate );
 
     // Check for a scene with focus.
-    currentScene = scenes.currentScene();
+    var currentScene = scenes.currentScene();
     if (undefined === currentScene) {
         return;
     }
-    controls.update();
+    var spaceship = currentScene.spaceship;
+    
+//    orbitControls.update();
 
     // If movie playback is active, advance the camera position.
     if (currentScene.animation === 'movie') {
         
         // The value for step is in light-years per frame.
         var p = new THREE.Vector3(0, 0, 0);
-        p.copy(camera.position);
-
-        // When the camera reaches the scene radius, make a 180 degree turn and
-        // continue.
-    //    if (STD_SCALE*SCENE_RADIUS < p.length()) {
-    //        MOVIE_DIRECTION = -1*MOVIE_DIRECTION;
-    //    }
+        p.copy(spaceship.position);
 
         // Move the camera one MOVIE_STEP.
         p = p.add(currentScene.movieDirection);
-        camera.position.copy(p);
+        spaceship.position.copy(p);
     }
     
     // And then render the scene.
@@ -403,12 +414,6 @@ function render()
 
     var scene = currentScene.scene;
     var camera = currentScene.camera;
-//    var wm = new THREE.Matrix4();
-//    wm = camera.worldMatrix;
-    
-//    var renderer = currentScene.renderer;
-//    var stereoEffect = currentScene.stereoEffect;
-//    var anaglyphEffect = currentScene.anaglyphEffect;
     var msgHandler = currentScene.msgHandler;
     
     raycaster.setFromCamera(mouse, camera);
@@ -428,8 +433,8 @@ function render()
             var obj = intersects[k].object;
             if (THREE_POINTS === obj.type) {
                 
-                // Check that we have custom attributes.  The red and green
-                // rings are point systems, but they don't have custom
+                // Check that we have custom attributes.  The red, blue and
+            	// green rings are point systems, but they don't have custom
                 // attributes.
                 if (undefined !== obj.geometry.custAttributes) {
 
@@ -476,18 +481,6 @@ function renderOnce(currentScene) {
     
     var scene = currentScene.scene;
     var camera = currentScene.camera;
-    
-    switch (currentScene.effect) {
-//        case 'anaglyph':
-//            var analglyphEffect = currentScene.anaglyphEffect;
-//            analglyphEffect.render(scene, camera);
-//            break;
-        case 'stereo':
-            var stereoEffect = currentScene.stereoEffect;
-            stereoEffect.render(scene, camera);
-            break;
-        default:
-            var renderer = currentScene.renderer;
-            renderer.render(scene, camera);
-    }
+    var renderer = currentScene.renderer;
+    renderer.render(scene, camera);
 }

@@ -45,6 +45,24 @@ const MSG_DATA_ATTRIBUTE = 3;
 // SceneManager constants
 const NO_ACTIVE_SCENE = -1;
 
+
+//// Temporarily launch VR from here.
+//function setupVRButton() {
+//	var launchVRButton = document.createElement('button');
+//
+//	var webvr = scenes.currentScene().webvr;
+//	if (webvr.webVRSupport) {
+//		launchVRButton.innerHTML = 'ENTER VR';
+//	}
+//	else {
+//		launchVRButton.innerHTML = 'WEBVR NOT SUPPORTED';
+//	}
+//	launchVRButton.onclick = function () {
+//		webvr.activateVR();
+//	};
+//	document.body.appendChild(launchVRButton);
+//};
+
 // This was a very hard problem.  When a page had more than one one star map,
 // the renderOnce() function would not render any of them.  The reason turned
 // out to be this: the star disk image was not yet downloaded from the server
@@ -56,9 +74,9 @@ const NO_ACTIVE_SCENE = -1;
 // completely loaded, even though the THREE.js library was still loading
 // textures.
 //
-// Finally, the onLoad() property of the THREE.js TexterLoader did nt work
+// Finally, the onLoad() property of the THREE.js TexterLoader did not work
 // either.  Documentation says that the onLoad function would be called when
-// the image was loaded.  What happened in practice is that adding an onLoad
+// the image was loaded.  What happened in practice was that adding an onLoad
 // parameter to the constructor just resulted in a typedef exception because
 // the offset was undefined deep in the texture code in the THREE.js.
 //
@@ -76,7 +94,7 @@ function onTextureFail() {
 
 
 // This utility function determines if the point is inside the rectangle.
-// It's required when dtermining which star is under the mouse pointer.
+// It's required when determining which star is under the mouse pointer.
 function pointRectIntersection(p, r) {
     return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
 }
@@ -137,7 +155,7 @@ var SceneManager = function() {
     this.scenes = [];
 
     // This is the scene pointer.  At present, scenes are built in order and
-    // after that there is no futherneed to reference a scene.  The one
+    // after that there is no further need to reference a scene.  The one
     // exception to that is the animate() function, which needs to cycle
     // through the scenes.
     //
@@ -155,14 +173,16 @@ SceneManager.prototype.newScene = function(mapParameters) {
     }
 
     // The new THREE scene.
-    // The camera, renderer, controls, grid, stars, etc. are initialize
+    // The camera, renderer, controls, grid, stars, etc. are initialized
     // elsewhere.
     var scene = new THREE.Scene();
+    var spaceship;
     var camera;
     var grid;
     var renderer;
-    var stereoEffect;
-    var anaglyphEffect;
+    var webvr;
+//    var stereoEffect;
+//    var anaglyphEffect;
     var stars = [];
     var mapParameters = mapParameters;
     
@@ -171,12 +191,14 @@ SceneManager.prototype.newScene = function(mapParameters) {
     
    this.scenes.push({
       scene: scene,
+      spaceship: spaceship,
       camera: camera,
       grid: grid,
       renderer: renderer,
+      webvr: webvr,
       effect: 'none',
-      stereoEffect: stereoEffect,
-      anaglyphEffect: anaglyphEffect,
+//      stereoEffect: stereoEffect,
+//      anaglyphEffect: anaglyphEffect,
       stars: stars,
       mapParameters: mapParameters,
       msgHandler: msgHandler
@@ -737,9 +759,14 @@ CoordinateGrid.prototype.joinScene = function(scene) {
  *
  */
 var CylindricalGrid = function(scale) {
+	
+	// These units have to be in meters, because the WebVR world is in meters.
+	// The variable scale is the scene radius in ly (see the init() function in
+	// orion.js).  So these values are given in light years and then
+	// immediately converted to meters.
 
-    const R_0 = 25900;
-    const radius = 60000;
+    const R_0 = 25900*STD_SCALE;	 // distance from center to the sun (ly)
+    const radius = 60000*STD_SCALE;  // radius of the Milky Way (ly)
     const divisions = 32;
     var color1 = new THREE.Color(0xffff99);
     var color2 = new THREE.Color(0x99ffff);
@@ -756,11 +783,11 @@ var CylindricalGrid = function(scale) {
     // If the scale is greater that R_0, then as a temporary measure, limit it
     // to 80% or R_0.
     var theta_max;
-    if (scale < R_0) {
-        theta_max = Math.atan(scale/(R_0 - scale));
+    if (SCENE_RADIUS < R_0) {
+        theta_max = Math.atan(SCENE_RADIUS/(R_0 - SCENE_RADIUS));
     }
     else {
-        theta_max = Math.atan(scale/0.2);
+        theta_max = Math.atan(SCENE_RADIUS/0.2);
     }
 
     for (k = -1; k <= 1; k++) {
@@ -768,13 +795,13 @@ var CylindricalGrid = function(scale) {
         // Create the radials.
         for (i = -10; i <= 10; i ++) {
             v = (i/10)*(theta_max);
-            xi = R_0 - Math.cos(v)*(R_0 - scale);
-            yi = -Math.sin(v)*(R_0 - scale);
-            xo = R_0 - Math.cos(v)*(R_0 + scale);
-            yo = -Math.sin(v)*(R_0 + scale);
+            xi = R_0 - Math.cos(v)*(R_0 - SCENE_RADIUS);
+            yi = -Math.sin(v)*(R_0 - SCENE_RADIUS);
+            xo = R_0 - Math.cos(v)*(R_0 + SCENE_RADIUS);
+            yo = -Math.sin(v)*(R_0 + SCENE_RADIUS);
 
-            vertices.push(xi, yi, k*scale/10);
-            vertices.push(xo, yo, k*scale/10);
+            vertices.push(xi, yi, k*SCENE_RADIUS/10);
+            vertices.push(xo, yo, k*SCENE_RADIUS/10);
 
             colors.push(color1.r, color1.g, color1.b);
             colors.push(color1.r, color1.g, color1.b);
@@ -782,7 +809,7 @@ var CylindricalGrid = function(scale) {
 
         // Create the circles.
         for (i = 0; i <= 20; i ++) {
-            r = R_0 + scale - (2*scale/20)*i;
+            r = R_0 + SCENE_RADIUS - (2*SCENE_RADIUS/20)*i;
 
             for (j = 0; j < divisions; j ++) {
 
@@ -791,7 +818,7 @@ var CylindricalGrid = function(scale) {
                 x = R_0 - Math.cos(v)*r;
                 y = -Math.sin(v)*r;
 
-                vertices.push(x, y, k*scale/10);
+                vertices.push(x, y, k*SCENE_RADIUS/10);
                 colors.push(color2.r, color2.g, color2.b);
 
                 // Second vertex
@@ -799,7 +826,7 @@ var CylindricalGrid = function(scale) {
                 x = R_0 - Math.cos(v)*r;
                 y = -Math.sin(v)*r;
 
-                vertices.push(x, y, k*scale/10);
+                vertices.push(x, y, k*SCENE_RADIUS/10);
                 colors.push(color2.r, color2.g, color2.b);
             }
         }
@@ -812,7 +839,7 @@ var CylindricalGrid = function(scale) {
     var material = new THREE.LineBasicMaterial({
         vertexColors: THREE.VertexColors,
         transparent: true,
-        opacity: 0.3
+        opacity: 0.2
     });
 
     THREE.LineSegments.call( this, geometry, material );
@@ -954,91 +981,18 @@ Star.prototype.color = function() {
 };
 
 function launchVR(buttonType, currentScene) {
+
     if (WEBGL !== rendererWrapper.engine) {
         var msg = "Attempt to set effect to stereo ignored.";
         msg = msg + " WebGL renderer is not in use.";
         console.warn(msg);
         return;
     }
-
-    // The fullscreen API is implemented a little differently in the browser
-    // engines.  Making the canvas element--the child of the <div> that is the
-    // star map--solves the problem of the full screen version not being
-    // centered.  It also solves the problem of the layout being correct when
-    // leaving fullscreen mode.
-    var p = document.getElementById(currentScene.mapParameters.canvasID);
-    var i = p.children[0];
-    if (i.requestFullscreen) {
-            i.requestFullscreen();
-    } else if (i.webkitRequestFullscreen) {
-            i.webkitRequestFullscreen();
-    } else if (i.mozRequestFullScreen) {
-            i.mozRequestFullScreen();
-    } else if (i.msRequestFullscreen) {
-            i.msRequestFullscreen();
-    }
-
-    //  There is a deviceOrientation property, but no documentation to explain
-    //  how to interpret the values.  So assume the larger dimension is width.
-    var x = screen.width;
-    var y = screen.height;
-    var w, h;
-    if (x > y) {
-        w = x/2;
-        h = y;
-    } else {    
-        w = y/2;
-        h = x;
-    }
     
-    // This is usefull for testing in a desktop browser.
-    //w = 400;
-    //h = 400;
-
-    // For the stereo effect, the aspect is for each side.
-    var aspect = w/h;
-    currentScene.camera.aspect = aspect;
-
-    currentScene.camera.updateProjectionMatrix();
-    currentScene.stereoEffect.setSize(2*w, h, true);
-    currentScene.effect = 'stereo';
-
-    renderOnce(currentScene);
-
-    // This makes the device orientation controls active.
-    controls.connect();
-    
-//    // Look at the Sun (or the origin).
-//    var origin = new THREE.Vector3(0, 0, 0);
-//    currentScene.camera.lookat(origin);
-}
-
-function setAnaglyph(buttonType, currentScene) {
-    var msg = "Anaglyph effect disabled."
-    console.warn(msg);
+    currentScene.webvr.activateVR();
     return;
-    //if (WEBGL !== rendererWrapper.engine) {
-    //    var msg = "Attempt to set effect to anaglyph ignored.";
-    //    msg = msg + " WebGL renderer is not in use.";
-    //    console.warn(msg);
-    //    return;
-    //}
-    //currentScene.effect = 'anaglyph';
-    //renderOnce(currentScene);
-}
-function unsetAnaglyph(buttonType, currentScene) {
-    var msg = "Anaglyph effect disabled."
-    console.warn(msg);
-    return;
-    //if (WEBGL !== rendererWrapper.engine) {
-    //    var msg = "Attempt to reset effect from anaglyph ignored.";
-    //    msg = msg + " WebGL renderer is not in use.";
-    //    console.warn(msg);
-    //    return;
-    //}
-    //currentScene.effect = 'none';
-    //renderOnce(currentScene);
-}
+
+};
 
 function playMovie(buttonType, currentScene) {
     if (WEBGL !== rendererWrapper.engine) {
@@ -1051,12 +1005,13 @@ function playMovie(buttonType, currentScene) {
     
     // Calculate the unit vector that points in the direction the camera is
     // looking.
-    var p = currentScene.camera.position.clone();
+    var p = currentScene.spaceship.position.clone();
     p.normalize();
     p.multiplyScalar(-1*MOVIE_STEP);
     currentScene.movieDirection = p;
     renderOnce(currentScene);
-}
+};
+
 function pauseMovie(buttonType, currentScene) {
     if (WEBGL !== rendererWrapper.engine) {
         var msg = "Attempt to stop playing movie animation ignored.";
@@ -1066,7 +1021,7 @@ function pauseMovie(buttonType, currentScene) {
     }
     currentScene.animation = 'animate';
     renderOnce(currentScene);
-}
+};
 
 /**
  * MapMesasgeLine
@@ -1083,7 +1038,7 @@ var MapMessageLine = function(mapParameters) {
     // Remember which renderer being used.
     this.engine = rendererWrapper.engine;
     
-    // The number of stars.  Either this is diplayed as "# stars", or in its
+    // The number of stars.  Either this is displayed as "# stars", or in its
     // place the attribute (e.g., Arcturus) from the star data source.
     this.numberStars = 0;
     this.attribute = "";
@@ -1091,8 +1046,7 @@ var MapMessageLine = function(mapParameters) {
     this.stars = "";
     
     // The VR and movie play buttons.
-    this.buttonVR = new Button("vr", "icon-cardboard", this.canvasID, launchVR, launchVR);
-    this.button3D = new Button("3d", "icon-glasses", this.canvasID, setAnaglyph, unsetAnaglyph);
+    this.buttonVR = new Button("vr", "icon-cardboard", this.canvasID, launchVR);
     this.buttonMV = new Button("mv", "icon-play", this.canvasID, playMovie, pauseMovie)
     
     this.renderer = "---";
@@ -1112,9 +1066,6 @@ MapMessageLine.prototype.getButtonByType = function(type) {
         case "vr":
             return this.buttonVR;
             break;
-        case "3d":
-            return this.button3D;
-            break;
         case "mv":
             return this.buttonMV;
             break;
@@ -1130,6 +1081,8 @@ MapMessageLine.prototype.init = function (engine, grid) {
     } else {
         this.renderer = "Canvas";
     }
+	this.scene = scenes.currentScene(this.canvasID);
+
     this.grid = grid;
     var sp = this.grid.gridSpacing;
     
@@ -1275,7 +1228,7 @@ MapMessageLine.prototype.update = function() {
             html = "<table class='starMapMsg' width='100%'><tr>"
                     + "<td style='width: 70px;'>";
             if ('WebGL' === this.renderer) {
-                    html = html + this.buttonVR.html() + this.button3D.html(false) + this.buttonMV.html();
+                    html = html + this.buttonVR.html() + this.buttonMV.html();
             } else {
                     html = html + this.renderer;
             }
@@ -1333,19 +1286,21 @@ function buttonAction(type, canvasId) {
     var currentScene = scenes.currentScene(canvasId);
     var button = currentScene.msgHandler.getButtonByType(type);
     button.action();
-}
+};
 
 /**
  * Button parent class
  * 
- * type sould be "vr" or "3d"
+ * type should be "vr" or "mv"
  * icon should be the id in the SVG file.  It's the xlink:href here.
  */
 var Button = function(type, icon, canvasId, forwardAction, reverseAction) {
     
     // These are callback functions.
     this.forwardAction = forwardAction;
-    this.reverseAction = reverseAction;
+    if (reverseAction !== undefined) {
+    	this.reverseAction = reverseAction;
+    }
     
     // These are properties.
     this.canvasId = canvasId;
