@@ -84,13 +84,14 @@ var WebVRManager = function(renderer) {
 	// VR display present change handler.
 	this.hndlVRDisplayPresentChange = function(event) {
 		
-		// For an undiscovered reason, the scene is behind the user when the VR
-		// display is activated.  So this rotates the camera 180 degrees about
-		// the y-axis.
-		flipScene();
-		self.renderer.vr.enabled = event.display.isPresenting;
+            // For an undiscovered reason, the scene is behind the user when the VR
+            // display is activated.  So this rotates the camera 180 degrees about
+            // the y-axis.
+            self.renderer.vr.enabled = event.display.isPresenting;
+//            flipScene();
+//            updateOrbitControls();
 	};
-	window.addEventListener('vrdisplaypresentchange', this.hndlVRDisplayPresnetChange, false);
+	window.addEventListener('vrdisplaypresentchange', this.hndlVRDisplayPresentChange, false);
 };
 
 // Start the VR rendering.
@@ -99,9 +100,7 @@ WebVRManager.prototype.activateVR = function() {
 	// Only start VR rendering if the VR display is connected.
 	if (this.webVRSupport && this.VRConnected) {
 		
-		// The scene is behind the user when the VR activates, so the camera
-		// must be rotated by 180 degrees about the y-axis.
-		flipScene();
-		this.makeitgo();
+            flipScene();
+            this.makeitgo();
 	}
 };

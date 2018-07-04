@@ -559,7 +559,7 @@ var MaterialManager = function() {
       size: 12,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
-      color: 0x6b96ff,
+      color: 0x0d79fe,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
       opacity: 1.0
@@ -1359,7 +1359,7 @@ Button.prototype.doAction = function() {
 }
 Button.prototype.undoAction = function() {
     this.currentScene = this.acquireScene();
-    if (undefined !== this.currentScene) {
+    if (undefined !== this.currentScene && undefined !== this.reverseAction) {
         this.reverseAction(this.type, this.currentScene, this.elem);
     }
 }

@@ -60,7 +60,7 @@ var CAMERA_DISTANCE; // Initial distance of the camera, in light years.
 var MOVIE_STEP;
 //var MOVIE_DIRECTION;
 
-var container, controls, orbitControls;
+var container, orbitControls;
 
 // Catch the exit from fullscreen and restore the proper width,height of all
 // the maps.
@@ -259,7 +259,12 @@ function init(sceneP)
             CAMERA_FAR);
     
     // The spaceship.
+    // THREE doesn't recognize this rig as a perspective camera, so it disables
+    // both zoom and pan.  The pan feature is dispensible, but the zoom is very
+    // useful.  This trick works for zoom, but not pan.  The pan feature is
+    // disabled for the oribit controls (later in this function).
     var spaceship = new THREE.Object3D();
+    spaceship.isPerspectiveCamera = true;
     
     // Default initial position of the camera is a position on a line
     // perpendicular to the galactic plane, directly above the sun, at a
@@ -298,11 +303,11 @@ function init(sceneP)
     container = document.getElementById(sceneP.canvasID);
     container.appendChild(renderer.domElement);
     orbitControls = new THREE.OrbitControls( spaceship, renderer.domElement );
-    orbitControls.enableZoom;
+    orbitControls.enableZoom = true;
+    orbitControls.enablePan = false;
     
     // The WebVR manager.
     var webvr = new WebVRManager(renderer);
-    
 
     // The blue and yellow coordinate grid.
     var grid = new CylindricalGrid(scale);
@@ -356,23 +361,25 @@ function onMouseMove(event) {
 function onMouseOver(elem) {
     var canvasID = elem.id;
     scenes.setCurrentScene(elem.id);
-}
+};
+
 function onMouseOut(elem) {
   
     scenes.setCurrentScene();
-}
+};
 
 function flipScene() {
 	var currentScene = scenes.currentScene();
 	var spaceship = currentScene.spaceship;
 	spaceship.rotateY(Math.PI);
-}
+        orbitControls.update();
+};
 
 function animate_vr()
 {
 	currentScene = scenes.currentScene();
 	currentScene.renderer.setAnimationLoop( animate );
-}
+};
 
 function animate()
 {
