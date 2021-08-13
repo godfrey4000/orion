@@ -84,3 +84,15 @@ const STARCOLORS_SUBJECTIVE = new StarColor([
     ['A', 0xfaffff],
     ['B', 0xfafdff],
     ['O', 0xfafdff]]);
+
+/*
+** All white.  This looks better when there are thousands of stars..
+*/
+const STARCOLORS_WHITE = new StarColor([
+    ['M', 0xffffff],
+    ['K', 0xffffff],
+    ['G', 0xffffff],
+    ['F', 0xffffff],
+    ['A', 0xffffff],
+    ['B', 0xffffff],
+    ['O', 0xffffff]]);

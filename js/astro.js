@@ -3,50 +3,55 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+export {toGal};
+
 const GC = {x: -0.0549, y: -0.8728, z: -0.4850};
 const GEAST = {x: 0.4944, y: -0.4458, z: 0.7463};
 const GNP = {x: -0.8675, y: -0.1987, z: 0.4560};
 
 // PI/180
-const PI180 = 0.017453;
+// const PI180 = 0.017453;
+const PI180 = Math.PI/180;
 
 // Vector scalar product.
-var dotp = function(u, v) {
-    var w = u.x*v.x + u.y*v.y + u.z*v.z;
+let dotp = function(u, v) {
+    let w = u.x*v.x + u.y*v.y + u.z*v.z;
     return w;
 };
 
-var toGal = function(eq, dnorm) {
+let toGal = function(eq) {
 
-	var galData = [];
+    const galData = [];
     eq.forEach( function(d,i) {
         
         // The CSV from services like VizieR sometimes include records with
         // missing values.  The THREE.js library expects to do math operations
         // on these values.  Anything that's not a number must be excluded.
-        var ra = parseFloat(d.ra);
-        var dec = parseFloat(d.dec);
-        var plx = parseFloat(d.Plx);
+        const ra = parseFloat(d.ra);
+        const dec = parseFloat(d.dec);
+        const plx = parseFloat(d.Plx);
         if (isNaN(ra) || isNaN(dec) || isNaN(plx)) {
             console.info("Record " + i.toString() + " missing ra, dec or Plx");
             return;
         }
         
-        var dist;
-        var n = {}, g = {};
-        var tagged, habitable, attribute, spectrum, temperature, luminosity;
+        let dist;
+        let n = {}, g = {};
+        let tagged, habitable, attribute, spectrum, temperature, luminosity;
         
-        // Compute the distance (in light years) from the parallax.
-        dist = dnorm*3262/plx;
+        // Compute the distance in parsecs from the parallax.  The units of the
+        // parallax is milli-arcseconds.
+        dist = 1000.0/plx;
         
         // Compute the absolute magnitude from the parallax and the apparent
         // magnitude.
+        let mag, Amag;
         if (d.Amag !== undefined) {
-            var Amag = parseFloat(d.Amag);
+            Amag = parseFloat(d.Amag);
         }
         else if (d.Vmag !== undefined) {
-            var mag = parseFloat(d.Vmag);
-            var Amag = 1.0*mag + 5*Math.log10(plx/100);
+            mag = parseFloat(d.Vmag);
+            Amag = 1.0*mag + 5*Math.log10(plx/100);
         }
         else {
             console.info("Record " + i.toString() + " missing Vmag or Amag");
@@ -61,6 +66,12 @@ var toGal = function(eq, dnorm) {
         };
         
         // Calculate n*c, n*(cxp) and n*p
+        //
+//        // The orbit controls have hard-coded the y-axis as the polar axis and
+//        // the x-axis as the azimuthal axis.  So ...
+//        // u -> -x
+//        // v -> z
+//        // w -> y
         g = {
           u: dist*dotp(n, GC),
           v: dist*dotp(n, GEAST),

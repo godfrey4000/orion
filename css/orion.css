@@ -1,53 +1,31 @@
-/*
-To change this license header, choose License Headers in Project Properties.
-To change this template file, choose Tools | Templates
-and open the template in the editor.
-*/
-/* 
-    Created on : Nov 1, 2016, 3:14:36 AM
-    Author     : neil
-*/
-
-canvas {
-    display: block;
+table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
 }
-
-.starMapMsg {
-    table-layout: fixed;
-    width: 100%;
-    white-space: nowrap;
+td {
+  background: black;
+  border: 1px solid white;
+  color: #bbb;    
 }
-.starMapMsg table {
-    border-collapse: collapse;
-}
-.starMapMsg table, th, td {
-    border: 1px solid #777;
-}
-.starMapMsg td {
-    background: #000;
-    font-family: sans-serif;
-    font-size: 0.7em;
-    color: #bbb;
-    height: 1.7em;
-    padding: 0 0.5em 0 0.5em;
-    vertical-align: center;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.smBar {
+  height: 2.5em;
+  font-family: sans-serif;
+  font-size: 0.7em;
+  padding: 0 0.5em 0 0.5em;
+  vertical-align: center;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /*
-** The cardboard works in a limited capacity.  The 3D-glasses does not work at
-** all, and is made grey to show that.  The play button starts the camera
-** moving.
+** The Google cardboard and the movie play buttons.
 */
 .svgicon {
     fill: #bbb;
 }
-.svgicon:hover {
-    fill: #7ff;
-}
 .svgiconDisabled {
-    fill: #666;
+    fill: #777;
 }
