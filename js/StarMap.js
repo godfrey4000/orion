@@ -126,8 +126,8 @@ StarMap.prototype.setSceneParams = function(paramsDOM, paramsURL) {
     
     // The params passed through the URL override.
     if (paramsURL) {
-        for (const param in paramsURL) {
-            this.sceneParams[param] = paramsURL[param];
+        for (let param of paramsURL.keys()) {
+            this.sceneParams[param] = paramsURL.get(param);
         };
     };
     

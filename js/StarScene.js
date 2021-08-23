@@ -50,14 +50,17 @@ const SCENE_CITY = 3;
 
 // Set the parameter CHARACTER_SCALE based on one of these three choices.
 function character_scale(scale_param) {
+    
+    // Force a number.
+    const p = Number(scale_param);
 
-    if (scale_param === SCENE_TABLE) {
+    if (p === SCENE_TABLE) {
         return 1;
     }
-    if (scale_param === SCENE_ARENA) {
+    if (p === SCENE_ARENA) {
         return 8;
     }
-    if (scale_param === SCENE_CITY) {
+    if (p === SCENE_CITY) {
         return 800;
     }
 };
@@ -118,8 +121,9 @@ var StarScene = function(starMap) {
     this.grid = new CoordinateGrid(this);
     this.scene.add(this.grid.gridLines);
     
-    // The movie step is based on 24 frames per second.
-    let pace = 10;
+    // The movie step is based on 24 frames per second.  A setting of 10 means
+    // that the spaceship will cross a gridline approximately every 10 seconds.
+    let pace = 5;
     if (this.params.pace) {
         pace = this.params.pace;
     };

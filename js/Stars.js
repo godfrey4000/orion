@@ -44,7 +44,7 @@ const STAR_BRIGHTNESS_GAIA_LOCAL = {
     dim: 14.4,
     mediumBright: 8.4,
     bright: 4.55,
-    veryBright: -3.45
+    veryBright: 2
 };
 
 // Absolute magnitude breakpoints.
@@ -133,7 +133,7 @@ var MaterialManager = function(starscheme) {
     
     // Dim stars.
     this.materialDim = new THREE.PointsMaterial({
-      size: 1.2,
+      size: 1.3,
       sizeAttenuation: SIZE_ATTENUATION,
 //      map: mapStar,
       color: 0x666666,
@@ -145,7 +145,7 @@ var MaterialManager = function(starscheme) {
     
     // Medium-bright stars.
     this.materialMedium = new THREE.PointsMaterial({
-      size: 1.5,
+      size: 1.6,
       sizeAttenuation: SIZE_ATTENUATION,
 //      map: mapStar,
       color: 0x999999,
@@ -157,7 +157,7 @@ var MaterialManager = function(starscheme) {
     
     // Bright stars.
     this.materialBright = new THREE.PointsMaterial({
-      size: 2.0,
+      size: 1.9,
       sizeAttenuation: SIZE_ATTENUATION,
 //      map: mapStar,
       color: 0xcccccc,
@@ -169,7 +169,7 @@ var MaterialManager = function(starscheme) {
 
     // Very bright stars.
     this.materialVeryBright = new THREE.PointsMaterial({
-      size: 2.5,
+      size: 2.2,
       sizeAttenuation: SIZE_ATTENUATION,
 //      map: mapStar,
       color: 0xffffff,

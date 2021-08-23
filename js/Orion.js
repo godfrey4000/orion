@@ -27,7 +27,7 @@ let renderingMap;
 // resorting to editing the HTML.
 //
 const url = new URL(window.location.href);
-const urlParams = url.searchParams;
+const urlParams = new URLSearchParams(url.search);
 
 // Starmaps must follow this convention for IDs: canvas = <baseId>_canvas, etc.
 // The baseId is the key for the list of starmaps.
@@ -52,12 +52,6 @@ for (let i = 0; i < starMapList.length; i++) {
         // must be specified in the star map in the HTML.
         const mapParams = starMapList[i].dataset.mapParams;
         const dom_parameters = JSON.parse(mapParams);
-        
-        // Additional parameters may be present in the URL.
-        let url_parameters;
-        if (urlParams.length > 0) {
-            url_parameters = JSON.parse(urlParams);
-        };
         
         // Gather the elements of each starmap, that is the toolbar, grid panel,
         // messages panel and the canvas itself.
@@ -90,18 +84,22 @@ for (let i = 0; i < starMapList.length; i++) {
 
         //  Then create a new starmap and add it to the starmaps being managed.
         renderingMap = new StarMap(elems);
-        renderingMap.setSceneParams(dom_parameters, url_parameters);
+
+        // Additional parameters may be present in the URL.  But urlParams is an
+        // object, not an array.  It has to be used like an iterator.  It's the
+        // only way I can get it to work.
+        renderingMap.setSceneParams(dom_parameters, urlParams);
         starMaps.set(baseId, renderingMap);
 
         // Add a mouseover and mouseout event listener so that the render
         // operation is only called when the mouse is in the element that
         // holds the star map.
-//        sm.canvas.addEventListener("mouseover", function() {
-//            onMouseOver(this);
-//        });
-//        sm.canvas.addEventListener("mouseout", function() {
-//            onMouseOut(this);
-//        });
+        renderingMap.canvas.addEventListener("mouseover", function() {
+            onMouseOver(this);
+        });
+        renderingMap.canvas.addEventListener("mouseout", function() {
+            onMouseOut(this);
+        });
     }
     catch (err) {
         console.error(err.message);
