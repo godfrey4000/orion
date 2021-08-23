@@ -4,49 +4,44 @@ To change this license header, choose License Headers in Project Properties.
 To change this template file, choose Tools | Templates
 and open the template in the editor.
 -->
-<html lang="en">
+<html>
     <head>
-        <title>New Orion</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-        <link rel="stylesheet" href="css/orion.css" type='text/css' media="all" />
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
-        
-        <!-- An example star map. -->
-        <table>
-            <tr>
-                <td class='smBar' id='webvr2_toolbar' style='width: 15%;'></td>
-                <td class='smBar' id='webvr2_grid' style='width: 35%;'></td>
-                <td class='smBar' id='webvr2_messages' style='width: 50%;'></td>
-            </tr>
-            <tr>
-<!--                <td class='starMap' id='webvr2_canvas' colspan='3'
-                    data-map-params='{
-                        "canvasID":"webvr1_canvas",
-                        "scale":2500,
-                        "sun":true,
-                        "pace": 5,
-                        "character": 2,
-                        "title": "Exoplanets",
-                        "source":"https://192.168.20.23/data/starsExoplanets.csv"
-                        }'>
-                </td> -->
-                <td class='starMap' id='webvr2_canvas' colspan='3'
-                    data-map-params='{"canvasID":"webvr1_canvas"}'>
-                </td>
-            </tr>
-        </table>
-        
-        <!-- xlink:hrefs from the SVG icons.  -->
-        <svg display="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" xml:space="preserve"><path id="icon-cardboard" d="M80.2,29.4H19.8c-4.2,0-7.6,3.4-7.6,7.6V63c0,4.2,3.4,7.6,7.6,7.6h21.9l5-9c1.5-2.5,5.1-2.5,6.5,0l5,9h21.9  c4.2,0,7.6-3.4,7.6-7.6V37C87.8,32.8,84.4,29.4,80.2,29.4z M32.8,59.1c-5.1,0-9.2-4.1-9.2-9.2c0-5.1,4.1-9.2,9.2-9.2  c5.1,0,9.2,4.1,9.2,9.2C42,55,37.9,59.1,32.8,59.1z M66.3,59.1c-5.1,0-9.2-4.1-9.2-9.2c0-5.1,4.1-9.2,9.2-9.2c5.1,0,9.2,4.1,9.2,9.2  C75.5,55,71.4,59.1,66.3,59.1z"></path></svg>
-        <svg display="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" xml:space="preserve"><path id="icon-play" d="M28.991,23.033 L29.51,23.064 L30.023,23.281 L72.023,48.281 C73.326,49.057 73.326,50.943 72.023,51.719 L30.023,76.718 C28.69,77.512 27,76.551 27,75 L27,25 C27.056,24.11 27.566,23.308 28.481,23.067 L28.991,23.033 z"></path></svg>
+        <div style="margin-left: 10%; margin-right: 10%;">
+            <table width="80%" border="0">
+                <tr><td width="30%"><img src="qr/city.png" border="0" /></td>
+                    <td width="70%">
+                        <h4><b>City Stars</b></h4>
+                        
+                        <p>These are the stars that are visible in the night sky
+                        if you live in the suburban-urban interface&mdash;a 6 on
+                        the ... scale.  The stars marked with red circles are
+                        the these familiar constellations:
+                        <ul>
+                            <li>Big Dipper</li>
+                            <li>Orion</li>
+                            <li>Scorpio</li>
+                            <li>Cynus (the Swan)</li>
+                            <li>Southern Cross (?)</li>
+                        </ul>
+                        They won't be recognizable until you travel to the sun's
+                        position and look at them from there.
+                    </td>
+                </tr>
+                <tr><td width="30%"><img src="qr/all80ly.png" border="0" /></td>
+                    <td width="70%">
+                        <h4><b>All the Stars within 80 Light-years</b></h4>
+                        
+                        <p>These are all the stars within 80 light-years of the
+                        sun.
+                    </td>
+                </tr>
 
-        <script src="https://d3js.org/d3.v4.min.js"></script>
-<!--        <script src="js/jquery-3.3.1.js"></script> -->
-        <script src="three.js/build/three.js"></script>
-        <script src="three.js/examples/js/controls/OrbitControls.js"></script>
-        <script type="module" src="js/Orion.js"></script>
-        <script src='https://unpkg.com/three-mesh-ui'></script>
+            </table>
+        </div>
     </body>
 </html>
