@@ -125,9 +125,36 @@ StarMap.prototype.setSceneParams = function(paramsDOM, paramsURL) {
     this.sceneParams = paramsDOM;
     
     // The params passed through the URL override.
+    let val;
     if (paramsURL) {
-        for (let param of paramsURL.keys()) {
-            this.sceneParams[param] = paramsURL.get(param);
+        for (let key of paramsURL.keys()) {
+
+            // The values in the search (query) string of the URL are all
+            // strings.  So the types must be converted here, which means 
+            // supported URL parameters have to be added at design time.
+            //
+            // Numbers...
+            if (key === 'scale') val = Number(paramsURL.get(key));
+            if (key === 'pace') val = Number(paramsURL.get(key));
+            if (key === 'character') val = Number(paramsURL.get(key));
+            
+            // Boolean...
+            if (key === 'sun') {
+                val = (paramsURL.get(key).toLowerCase() === "true");
+            };
+                    
+            // An array
+            if (key === 'position') {
+                const it = paramsURL.get(key);
+                val = JSON.parse(it);
+            }
+            // Thanks to stackoverflow for all these patterns for helping with
+            // this surprisingly troublesome task.
+            //
+            // strings...
+            if (key === 'source') val = paramsURL.get(key);
+
+            this.sceneParams[key] = val;
         };
     };
     

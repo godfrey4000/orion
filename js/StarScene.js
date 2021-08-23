@@ -51,16 +51,13 @@ const SCENE_CITY = 3;
 // Set the parameter CHARACTER_SCALE based on one of these three choices.
 function character_scale(scale_param) {
     
-    // Force a number.
-    const p = Number(scale_param);
-
-    if (p === SCENE_TABLE) {
+    if (scale_param === SCENE_TABLE) {
         return 1;
     }
-    if (p === SCENE_ARENA) {
+    if (scale_param === SCENE_ARENA) {
         return 8;
     }
-    if (p === SCENE_CITY) {
+    if (scale_param === SCENE_CITY) {
         return 800;
     }
 };
