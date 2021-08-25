@@ -94,12 +94,12 @@ for (let i = 0; i < starMapList.length; i++) {
         // Add a mouseover and mouseout event listener so that the render
         // operation is only called when the mouse is in the element that
         // holds the star map.
-        renderingMap.canvas.addEventListener("mouseover", function() {
-            onMouseOver(this);
-        });
-        renderingMap.canvas.addEventListener("mouseout", function() {
-            onMouseOut(this);
-        });
+//        renderingMap.canvas.addEventListener("mouseover", function() {
+//            onMouseOver(this);
+//        });
+//        renderingMap.canvas.addEventListener("mouseout", function() {
+//            onMouseOut(this);
+//        });
     }
     catch (err) {
         console.error(err.message);

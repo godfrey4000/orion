@@ -111,7 +111,7 @@ function onTextureFail() {
 // if the renderer is WEBGL or CANVAS.
 var MaterialManager = function(starscheme) {
     
-//    var mapStar = new THREE.TextureLoader(loaderManager).load(STAR_IMG);
+    var mapStar = new THREE.TextureLoader(loaderManager).load(STAR_IMG);
     var mapRing = new THREE.TextureLoader(loaderManager).load(RING_IMG);
 
     // These materials are for point systems, which use the WEBGL renderer.
@@ -121,10 +121,10 @@ var MaterialManager = function(starscheme) {
     //
     // Very dim stars.
     this.materialVeryDim = new THREE.PointsMaterial({
-      size: 1.0,
+      size: 0.6,
       sizeAttenuation: SIZE_ATTENUATION,
-//      map: mapStar,
-      color: 0x333333,
+      map: mapStar,
+      color: 0x070707,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
       opacity: 10
@@ -133,10 +133,10 @@ var MaterialManager = function(starscheme) {
     
     // Dim stars.
     this.materialDim = new THREE.PointsMaterial({
-      size: 1.3,
+      size: 1.0,
       sizeAttenuation: SIZE_ATTENUATION,
-//      map: mapStar,
-      color: 0x666666,
+      map: mapStar,
+      color: 0x454545,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
       opacity: 10
@@ -145,10 +145,10 @@ var MaterialManager = function(starscheme) {
     
     // Medium-bright stars.
     this.materialMedium = new THREE.PointsMaterial({
-      size: 1.6,
+      size: 1.4,
       sizeAttenuation: SIZE_ATTENUATION,
-//      map: mapStar,
-      color: 0x999999,
+      map: mapStar,
+      color: 0x838383,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
       opacity: 10
@@ -157,10 +157,10 @@ var MaterialManager = function(starscheme) {
     
     // Bright stars.
     this.materialBright = new THREE.PointsMaterial({
-      size: 1.9,
+      size: 1.8,
       sizeAttenuation: SIZE_ATTENUATION,
-//      map: mapStar,
-      color: 0xcccccc,
+      map: mapStar,
+      color: 0xc1c1c1,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
       opacity: 10
@@ -171,7 +171,7 @@ var MaterialManager = function(starscheme) {
     this.materialVeryBright = new THREE.PointsMaterial({
       size: 2.2,
       sizeAttenuation: SIZE_ATTENUATION,
-//      map: mapStar,
+      map: mapStar,
       color: 0xffffff,
       blending: THREE.AdditiveBlending,
       transparent: TRANSPARENT,
@@ -181,7 +181,7 @@ var MaterialManager = function(starscheme) {
 
     // A ring for marking stars.
     this.materialRingMark = new THREE.PointsMaterial({
-      size: 12,
+      size: 8,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0xff0000,
@@ -194,7 +194,7 @@ var MaterialManager = function(starscheme) {
     // A ring for marking the sun, and any stars with a planet known to
     // harbor life.
     this.materialRingLife = new THREE.PointsMaterial({
-      size: 12,
+      size: 8,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0x00ff00,
@@ -207,7 +207,7 @@ var MaterialManager = function(starscheme) {
     // A ring for marking the stars that have confirmed exoplanets in the
     // habitable zone.  The color is blue.
     this.materialRingHabitable = new THREE.PointsMaterial({
-      size: 12,
+      size: 8,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0x0077ff,
@@ -219,7 +219,7 @@ var MaterialManager = function(starscheme) {
 
     // Finally, a ring to mark the star whose attribute is displated in VR.
     this.materialHighlight = new THREE.PointsMaterial({
-      size: 12,
+      size: 8,
       sizeAttenuation: SIZE_ATTENUATION,
       map: mapRing,
       color: 0xffff77,
